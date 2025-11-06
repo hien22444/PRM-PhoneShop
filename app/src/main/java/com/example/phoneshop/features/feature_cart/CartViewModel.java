@@ -107,4 +107,11 @@ public class CartViewModel extends ViewModel {
         _cartItems.setValue(currentList); // Cập nhật lại
         calculateTotalPrice(); // Tính lại tổng tiền
     }
+
+    // ***** Nhiệm vụ 4: Xóa toàn bộ giỏ hàng *****
+    public void clearCart() {
+        _cartItems.setValue(new ArrayList<>()); // Xóa tất cả items
+        _totalPrice.setValue(0L); // Reset tổng tiền
+        _isEmpty.setValue(true); // Đánh dấu giỏ hàng trống
+    }
 }

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main_navgraph"
-    app:startDestination="@id/cartFragment">
+    app:startDestination="@id/homeFragment">
 
     <!-- Fragment 1: Giỏ hàng -->
     <fragment
@@ -58,21 +58,94 @@
             app:popUpToInclusive="true" />
     </fragment>
 
-    <!-- Fragment 5: Lịch sử (Code của bạn đã có) -->
+    <!-- Fragment 5: Lịch sử -->
     <fragment
         android:id="@+id/orderHistoryFragment"
         android:name="com.example.phoneshop.features.feature_cart.OrderHistoryFragment"
         android:label="fragment_order_history"
         tools:layout="@layout/fragment_order_history" />
 
-    <!--
-      FRAGMENT 6 (BỊ THIẾU)
-      Đây là "nơi đến" cho nút "Quay về Trang chủ"
-    -->
-<!--    <fragment-->
-<!--        android:id="@+id/homeFragment"-->
-<!--        android:name="com.example.phoneshop.features.feature_shopping.HomeFragment"-->
-<!--        android:label="fragment_home"-->
-<!--        tools:layout="@layout/fragment_home" />-->
+    <!-- ========== SHOPPING FEATURES ========== -->
+    
+    <!-- Home Fragment - Trang chủ -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.phoneshop.feature_shopping.HomeFragment"
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_homeFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_productSearchFragment"
+            app:destination="@id/productSearchFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_cartFragment"
+            app:destination="@id/cartFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_storeMapFragment"
+            app:destination="@id/storeMapFragment" />
+    </fragment>
+
+    <!-- Product Detail Fragment - Chi tiết sản phẩm -->
+    <fragment
+        android:id="@+id/productDetailFragment"
+        android:name="com.example.phoneshop.feature_shopping.ProductDetailFragment"
+        android:label="fragment_product_detail"
+        tools:layout="@layout/fragment_product_detail" >
+        <argument
+            android:name="product_id"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_productDetailFragment_to_cartFragment"
+            app:destination="@id/cartFragment" />
+        <action
+            android:id="@+id/action_productDetailFragment_to_arViewFragment"
+            app:destination="@id/arViewFragment" />
+        <action
+            android:id="@+id/action_productDetailFragment_to_productComparisonFragment"
+            app:destination="@id/productComparisonFragment" />
+    </fragment>
+
+    <!-- Product Search Fragment - Tìm kiếm -->
+    <fragment
+        android:id="@+id/productSearchFragment"
+        android:name="com.example.phoneshop.feature_shopping.ProductSearchFragment"
+        android:label="fragment_product_search"
+        tools:layout="@layout/fragment_product_search" >
+        <action
+            android:id="@+id/action_productSearchFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
+
+    <!-- Store Map Fragment - Bản đồ cửa hàng -->
+    <fragment
+        android:id="@+id/storeMapFragment"
+        android:name="com.example.phoneshop.feature_shopping.StoreMapFragment"
+        android:label="fragment_store_map"
+        tools:layout="@layout/fragment_store_map" />
+
+    <!-- Product Comparison Fragment - So sánh sản phẩm -->
+    <fragment
+        android:id="@+id/productComparisonFragment"
+        android:name="com.example.phoneshop.feature_shopping.comparison.ProductComparisonFragment"
+        android:label="fragment_product_comparison"
+        tools:layout="@layout/fragment_product_comparison" />
+
+    <!-- AR View Fragment - Xem AR 3D -->
+    <fragment
+        android:id="@+id/arViewFragment"
+        android:name="com.example.phoneshop.feature_shopping.ar_view.ArViewFragment"
+        android:label="fragment_ar_view"
+        tools:layout="@layout/fragment_ar_view" >
+        <argument
+            android:name="product_name"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="product_price"
+            app:argType="long"
+            android:defaultValue="0L" />
+    </fragment>
 
 </navigation>

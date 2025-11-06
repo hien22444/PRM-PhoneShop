@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -29,7 +30,7 @@ public class OrderSuccessFragment extends Fragment {
 
         navController = Navigation.findNavController(view);
         MaterialButton btnViewOrders = view.findViewById(R.id.btnViewOrders);
-        MaterialButton btnBackToHome = view.findViewById(R.id/btnBackToHome);
+        MaterialButton btnBackToHome = view.findViewById(R  .id.btnBackToHome);
 
         btnViewOrders.setOnClickListener(v -> {
             // Điều hướng tới Lịch sử đơn hàng
