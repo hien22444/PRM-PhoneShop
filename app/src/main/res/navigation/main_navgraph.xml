@@ -25,6 +25,13 @@
         <action
             android:id="@+id/action_checkoutFragment_to_paymentWebViewFragment"
             app:destination="@id/paymentWebViewFragment" />
+
+        <action
+            android:id="@+id/action_checkoutFragment_to_orderSuccessFragment"
+            app:destination="@id/orderSuccessFragment"
+            app:popUpTo="@id/cartFragment"
+            app:popUpToInclusive="true" />
+
     </fragment>
 
     <!-- Fragment 3: WebView Thanh toán -->

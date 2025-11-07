@@ -146,14 +146,38 @@ public class CheckoutFragment extends Fragment {
 
         // --- BƯỚC 1: GỌI API ĐỂ TẠO LINK THANH TOÁN ---
         // (Code giả lập từ lần trước)
-        String giaLapPaymentUrl = "https://pay.payos.vn/dummy-link-12345";
+        // ... (lấy fullName, phone, address, paymentMethod) ...
 
-        if (giaLapPaymentUrl != null) {
-            Bundle bundle = new Bundle();
-            bundle.putString("payment_url", giaLapPaymentUrl);
-            navController.navigate(R.id.action_checkoutFragment_to_paymentWebViewFragment, bundle);
+        if (paymentMethod.equals("COD")) {
+            // --- TRƯỜNG HỢP 1: NGƯỜI DÙNG CHỌN COD ---
+
+            // TODO: Gọi API tạo đơn hàng với trạng thái "Chờ giao hàng"
+            // (Vì là COD nên không cần link thanh toán)
+
+            // Giả lập gọi API thành công:
+            Toast.makeText(getContext(), "Đặt hàng COD thành công!", Toast.LENGTH_SHORT).show();
+
+            // Đi thẳng đến màn hình Thành công
+            // LƯU Ý: Bạn sẽ cần thêm action này vào file nav_graph.xml
+            navController.navigate(R.id.action_checkoutFragment_to_orderSuccessFragment);
+
         } else {
-            Toast.makeText(getContext(), "Không thể tạo đơn hàng, vui lòng thử lại", Toast.LENGTH_SHORT).show();
+            // --- TRƯỜNG HỢP 2: NGƯỜI DÙNG CHỌN THANH TOÁN ONLINE ---
+
+            // TODO: Gọi API tạo đơn hàng VÀ LẤY LINK THANH TOÁN (từ PayOS, v.v...)
+
+            // Giả lập lấy link thành công:
+            String giaLapPaymentUrl = "https://pay.payos.vn/dummy-link-12345";
+
+            if (giaLapPaymentUrl != null) {
+                Bundle bundle = new Bundle();
+                bundle.putString("payment_url", giaLapPaymentUrl);
+
+                // Đi đến màn hình WebView để thanh toán
+                navController.navigate(R.id.action_checkoutFragment_to_paymentWebViewFragment, bundle);
+            } else {
+                Toast.makeText(getContext(), "Không thể tạo đơn hàng, vui lòng thử lại", Toast.LENGTH_SHORT).show();
+            }
         }
     }
     // 6. Hàm kiểm tra form
