@@ -1,5 +1,7 @@
 package com.example.phoneshop.features.feature_cart;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,6 +32,7 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
     private RecyclerView rvOrders;
     private TextView tvEmptyOrder;
     private NavController navController;
+    private SharedPreferences sharedPreferences;
 
     @Nullable
     @Override
@@ -41,11 +44,16 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Khởi tạo NavController trước
+        navController = Navigation.findNavController(view);
+        
+        // Kiểm tra đăng nhập
+        if (!checkLoginStatus()) {
+            return;
+        }
+
         // Khởi tạo ViewModel
         viewModel = new ViewModelProvider(this).get(OrderHistoryViewModel.class);
-
-        // Khởi tạo NavController
-        navController = Navigation.findNavController(view);
 
         // Ánh xạ Views
         rvOrders = view.findViewById(R.id.rvOrders);
@@ -62,6 +70,33 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
         toolbar.setNavigationOnClickListener(v -> navController.navigateUp());
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Kiểm tra lại đăng nhập khi fragment hiển thị lại
+        if (!checkLoginStatus()) {
+            return;
+        }
+    }
+
+    private boolean checkLoginStatus() {
+        sharedPreferences = requireActivity().getSharedPreferences("PhoneShopPrefs", Context.MODE_PRIVATE);
+        boolean isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false);
+        
+        if (!isLoggedIn) {
+            // Nếu chưa đăng nhập, quay về màn hình trước và hiển thị thông báo
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để xem đơn hàng", Toast.LENGTH_SHORT).show();
+            if (navController != null && getView() != null) {
+                // Quay về màn hình trước (thường là profileFragment hoặc homeFragment)
+                if (navController.getCurrentDestination() != null) {
+                    navController.popBackStack();
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
     private void setupRecyclerView() {
         // 'this' là Fragment này, vì nó implement OnOrderClickListener
         adapter = new OrderHistoryAdapter(getContext(), new ArrayList<>(), this);
@@ -72,13 +107,29 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
     private void observeViewModel() {
         // Lắng nghe danh sách đơn hàng
         viewModel.getOrders().observe(getViewLifecycleOwner(), orders -> {
-            adapter.updateOrders(orders);
+            if (orders != null) {
+                adapter.updateOrders(orders);
+            }
         });
 
         // Lắng nghe trạng thái (trống/không)
         viewModel.getIsEmpty().observe(getViewLifecycleOwner(), isEmpty -> {
-            tvEmptyOrder.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-            rvOrders.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+            if (isEmpty != null) {
+                tvEmptyOrder.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+                rvOrders.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+            }
+        });
+        
+        // Lắng nghe trạng thái loading
+        viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            // Có thể hiển thị progress bar nếu cần
+        });
+        
+        // Lắng nghe lỗi
+        viewModel.getError().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(getContext(), error, Toast.LENGTH_SHORT).show();
+            }
         });
     }
 

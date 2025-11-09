@@ -2,11 +2,16 @@ package com.example.phoneshop.data.model;
 
 public class Order {
 
+    private String id;
     private String orderId;
     private String orderDate;
     private String status; // Ví dụ: "Đang xử lý", "Đang giao", "Hoàn thành", "Đã hủy"
     private long totalPrice;
     private int itemCount;
+    private String fullName;
+    private String phone;
+    private String address;
+    private String paymentMethod;
 
     // Constructor rỗng
     public Order() {
@@ -36,4 +41,19 @@ public class Order {
 
     public int getItemCount() { return itemCount; }
     public void setItemCount(int itemCount) { this.itemCount = itemCount; }
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }

@@ -30,13 +30,20 @@ public class OrderSuccessFragment extends Fragment {
 
         navController = Navigation.findNavController(view);
         MaterialButton btnViewOrders = view.findViewById(R.id.btnViewOrders);
-        MaterialButton btnBackToHome = view.findViewById(R  .id.btnBackToHome);
+        MaterialButton btnBackToHome = view.findViewById(R.id.btnBackToHome);
 
         btnViewOrders.setOnClickListener(v -> {
-            // Điều hướng tới Lịch sử đơn hàng
-            // (Bạn cần tạo action này trong navgraph)
-            // Chúng ta sẽ đặt ID là: action_orderSuccessFragment_to_orderHistoryFragment
-            navController.navigate(R.id.action_orderSuccessFragment_to_orderHistoryFragment);
+            // Kiểm tra đăng nhập trước khi điều hướng tới Lịch sử đơn hàng
+            android.content.SharedPreferences sharedPreferences = 
+                requireActivity().getSharedPreferences("PhoneShopPrefs", android.content.Context.MODE_PRIVATE);
+            boolean isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false);
+            
+            if (isLoggedIn) {
+                navController.navigate(R.id.action_orderSuccessFragment_to_orderHistoryFragment);
+            } else {
+                Toast.makeText(getContext(), "Vui lòng đăng nhập để xem đơn hàng", Toast.LENGTH_SHORT).show();
+                navController.navigate(R.id.action_orderSuccessFragment_to_homeFragment);
+            }
         });
 
         btnBackToHome.setOnClickListener(v -> {

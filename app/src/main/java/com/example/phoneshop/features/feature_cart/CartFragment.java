@@ -1,5 +1,7 @@
 package com.example.phoneshop.features.feature_cart;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,6 +34,8 @@ public class CartFragment extends Fragment implements CartAdapter.CartItemListen
     // 1. Khai báo các biến
     private CartViewModel viewModel;
     private CartAdapter cartAdapter;
+    private NavController navController;
+    private SharedPreferences sharedPreferences;
 
     // Các View trong XML
     private RecyclerView rvCartItems;
@@ -55,6 +59,14 @@ public class CartFragment extends Fragment implements CartAdapter.CartItemListen
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Khởi tạo NavController trước
+        navController = Navigation.findNavController(view);
+        
+        // Kiểm tra đăng nhập
+        if (!checkLoginStatus()) {
+            return;
+        }
+
         // 2. Khởi tạo ViewModel
         viewModel = new ViewModelProvider(this).get(CartViewModel.class);
 
@@ -74,13 +86,46 @@ public class CartFragment extends Fragment implements CartAdapter.CartItemListen
 
         // 6. Cài đặt các sự kiện Click
         btnCheckout.setOnClickListener(v -> {
+            // Kiểm tra lại đăng nhập trước khi checkout
+            if (!checkLoginStatus()) {
+                return;
+            }
             // Chuyển sang màn hình Thanh toán (Checkout)
-            // Đây là ví dụ dùng Navigation Component
-            NavController navController = Navigation.findNavController(v);
             navController.navigate(R.id.action_cartFragment_to_checkoutFragment);
         });
 
         // (Bạn cũng có thể cài đặt sự kiện cho nút back trên toolbar ở đây)
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Kiểm tra lại đăng nhập khi fragment hiển thị lại
+        if (!checkLoginStatus()) {
+            return;
+        }
+        // Reload cart khi quay lại fragment để đồng bộ với server
+        if (viewModel != null) {
+            viewModel.loadCartItems();
+        }
+    }
+
+    private boolean checkLoginStatus() {
+        sharedPreferences = requireActivity().getSharedPreferences("PhoneShopPrefs", Context.MODE_PRIVATE);
+        boolean isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false);
+        
+        if (!isLoggedIn) {
+            // Nếu chưa đăng nhập, quay về màn hình trước và hiển thị thông báo
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để xem giỏ hàng", Toast.LENGTH_SHORT).show();
+            if (navController != null && getView() != null) {
+                // Quay về màn hình trước (thường là homeFragment hoặc productDetailFragment)
+                if (navController.getCurrentDestination() != null) {
+                    navController.popBackStack();
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     private void setupRecyclerView() {
@@ -93,28 +138,46 @@ public class CartFragment extends Fragment implements CartAdapter.CartItemListen
     private void observeViewModel() {
         // A. Lắng nghe danh sách sản phẩm
         viewModel.getCartItems().observe(getViewLifecycleOwner(), cartItems -> {
-            // Khi danh sách thay đổi, cập nhật Adapter
-            cartAdapter.updateCartItems(cartItems);
+            if (cartItems != null) {
+                // Khi danh sách thay đổi, cập nhật Adapter
+                cartAdapter.updateCartItems(cartItems);
+            }
         });
 
         // B. Lắng nghe tổng tiền
         viewModel.getTotalPrice().observe(getViewLifecycleOwner(), totalPrice -> {
-            // Khi tổng tiền thay đổi, cập nhật giao diện
-            String formattedPrice = currencyFormat.format(totalPrice);
-            tvSubtotalPrice.setText(formattedPrice);
-            tvTotalPrice.setText(formattedPrice);
+            if (totalPrice != null) {
+                // Khi tổng tiền thay đổi, cập nhật giao diện
+                String formattedPrice = currencyFormat.format(totalPrice);
+                tvSubtotalPrice.setText(formattedPrice);
+                tvTotalPrice.setText(formattedPrice);
+            }
         });
 
         // C. Lắng nghe trạng thái giỏ hàng (trống/không)
         viewModel.getIsEmpty().observe(getViewLifecycleOwner(), isEmpty -> {
-            if (isEmpty) {
-                tvEmptyCart.setVisibility(View.VISIBLE);
-                rvCartItems.setVisibility(View.GONE);
-                bottomSummaryCard.setVisibility(View.GONE);
-            } else {
-                tvEmptyCart.setVisibility(View.GONE);
-                rvCartItems.setVisibility(View.VISIBLE);
-                bottomSummaryCard.setVisibility(View.VISIBLE);
+            if (isEmpty != null) {
+                if (isEmpty) {
+                    tvEmptyCart.setVisibility(View.VISIBLE);
+                    rvCartItems.setVisibility(View.GONE);
+                    bottomSummaryCard.setVisibility(View.GONE);
+                } else {
+                    tvEmptyCart.setVisibility(View.GONE);
+                    rvCartItems.setVisibility(View.VISIBLE);
+                    bottomSummaryCard.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+        
+        // D. Lắng nghe trạng thái loading
+        viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            // Có thể hiển thị progress bar nếu cần
+        });
+        
+        // E. Lắng nghe lỗi
+        viewModel.getError().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty() && !error.equals("")) {
+                Toast.makeText(getContext(), error, Toast.LENGTH_SHORT).show();
             }
         });
     }

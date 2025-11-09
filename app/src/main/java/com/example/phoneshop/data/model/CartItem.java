@@ -6,11 +6,13 @@ package com.example.phoneshop.data.model;
  */
 public class CartItem {
 
+    private String id;
     private String productId;
     private String productName;
     private long price; // Dùng 'long' để lưu giá tiền (VND), an toàn hơn float/double
     private int quantity; // Số lượng
     private String imageUrl;
+    private Product product; // Thông tin sản phẩm đầy đủ
 
     // Constructor rỗng (cần cho Firebase/Room)
     public CartItem() {
@@ -66,5 +68,21 @@ public class CartItem {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
     }
 }

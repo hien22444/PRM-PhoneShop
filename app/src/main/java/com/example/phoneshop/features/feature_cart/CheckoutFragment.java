@@ -21,6 +21,8 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.List;
+
 public class CheckoutFragment extends Fragment {
 
     // 1. Khai báo các biến
@@ -121,16 +123,11 @@ public class CheckoutFragment extends Fragment {
 
     // 6. Hàm xử lý logic đặt hàng (CẬP NHẬT LẠI)
     private void placeOrder() {
-
-        //
-        // THÊM 3 DÒNG NÀY VÀO (Hoặc đảm bảo bạn có chúng)
-        //
         String fullName = etFullName.getText().toString().trim();
         String phone = etPhoneNumber.getText().toString().trim();
         String address = etAddress.getText().toString().trim();
 
         // Kiểm tra tính hợp lệ (Validate)
-        // Bây giờ dòng này sẽ hết lỗi
         if (!validateForm(fullName, phone, address)) {
             return; // Dừng lại nếu form không hợp lệ
         }
@@ -144,41 +141,71 @@ public class CheckoutFragment extends Fragment {
             paymentMethod = "Ví điện tử";
         }
 
-        // --- BƯỚC 1: GỌI API ĐỂ TẠO LINK THANH TOÁN ---
-        // (Code giả lập từ lần trước)
-        // ... (lấy fullName, phone, address, paymentMethod) ...
+        // Lấy danh sách sản phẩm từ giỏ hàng
+        List<com.example.phoneshop.data.model.CartItem> cartItems = cartViewModel.getCartItems().getValue();
+        if (cartItems == null || cartItems.isEmpty()) {
+            Toast.makeText(getContext(), "Giỏ hàng trống", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        if (paymentMethod.equals("COD")) {
-            // --- TRƯỜNG HỢP 1: NGƯỜI DÙNG CHỌN COD ---
+        // Tạo OrderRequest
+        com.example.phoneshop.data.model.OrderRequest request = new com.example.phoneshop.data.model.OrderRequest();
+        request.setFullName(fullName);
+        request.setPhone(phone);
+        request.setAddress(address);
+        request.setPaymentMethod(paymentMethod);
 
-            // TODO: Gọi API tạo đơn hàng với trạng thái "Chờ giao hàng"
-            // (Vì là COD nên không cần link thanh toán)
+        // Chuyển đổi CartItem thành OrderItemRequest
+        List<com.example.phoneshop.data.model.OrderRequest.OrderItemRequest> orderItems = new java.util.ArrayList<>();
+        for (com.example.phoneshop.data.model.CartItem item : cartItems) {
+            orderItems.add(new com.example.phoneshop.data.model.OrderRequest.OrderItemRequest(
+                item.getProductId(),
+                item.getQuantity(),
+                item.getPrice()
+            ));
+        }
+        request.setItems(orderItems);
 
-            // Giả lập gọi API thành công:
-            Toast.makeText(getContext(), "Đặt hàng COD thành công!", Toast.LENGTH_SHORT).show();
+        // Gọi API để tạo đơn hàng
+        createOrder(request, paymentMethod);
+    }
 
-            // Đi thẳng đến màn hình Thành công
-            // LƯU Ý: Bạn sẽ cần thêm action này vào file nav_graph.xml
-            navController.navigate(R.id.action_checkoutFragment_to_orderSuccessFragment);
-
-        } else {
-            // --- TRƯỜNG HỢP 2: NGƯỜI DÙNG CHỌN THANH TOÁN ONLINE ---
-
-            // TODO: Gọi API tạo đơn hàng VÀ LẤY LINK THANH TOÁN (từ PayOS, v.v...)
-
-            // Giả lập lấy link thành công:
-            String giaLapPaymentUrl = "https://pay.payos.vn/dummy-link-12345";
-
-            if (giaLapPaymentUrl != null) {
-                Bundle bundle = new Bundle();
-                bundle.putString("payment_url", giaLapPaymentUrl);
-
-                // Đi đến màn hình WebView để thanh toán
-                navController.navigate(R.id.action_checkoutFragment_to_paymentWebViewFragment, bundle);
+    private void createOrder(com.example.phoneshop.data.model.OrderRequest request, String paymentMethod) {
+        // Disable button để tránh double click
+        btnPlaceOrder.setEnabled(false);
+        btnPlaceOrder.setText("Đang xử lý...");
+        
+        // Sử dụng OrderRepository để tạo đơn hàng
+        com.example.phoneshop.data.repository.OrderRepository orderRepository = 
+            com.example.phoneshop.data.repository.OrderRepository.getInstance();
+        
+        androidx.lifecycle.LiveData<com.example.phoneshop.data.model.Order> orderLiveData = 
+            orderRepository.createOrder(request);
+        
+        orderLiveData.observe(getViewLifecycleOwner(), order -> {
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText("Xác nhận đặt hàng");
+            
+            if (order != null) {
+                // Đơn hàng được tạo thành công
+                Toast.makeText(getContext(), "Đặt hàng thành công!", Toast.LENGTH_SHORT).show();
+                
+                // Xóa giỏ hàng sau khi đặt hàng thành công
+                cartViewModel.clearCart();
+                
+                if (paymentMethod.equals("COD")) {
+                    // COD - đi thẳng đến màn hình thành công
+                    navController.navigate(R.id.action_checkoutFragment_to_orderSuccessFragment);
+                } else {
+                    // Thanh toán online - đi đến màn hình thanh toán
+                    // TODO: Lấy payment URL từ order response khi API trả về
+                    // Tạm thời, đi đến màn hình thành công
+                    navController.navigate(R.id.action_checkoutFragment_to_orderSuccessFragment);
+                }
             } else {
                 Toast.makeText(getContext(), "Không thể tạo đơn hàng, vui lòng thử lại", Toast.LENGTH_SHORT).show();
             }
-        }
+        });
     }
     // 6. Hàm kiểm tra form
     private boolean validateForm(String fullName, String phone, String address) {

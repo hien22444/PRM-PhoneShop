@@ -195,9 +195,30 @@ public class HomeFragment extends Fragment implements
 
     @Override
     public void onAddToCartClick(Product product) {
-        // Add to cart logic
-        Toast.makeText(getContext(), "Đã thêm " + product.getName() + " vào giỏ hàng", Toast.LENGTH_SHORT).show();
-        // TODO: Implement add to cart functionality
+        // Check if user is logged in
+        if (!isLoggedIn()) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
+            navController.navigate(R.id.action_homeFragment_to_loginFragment);
+            return;
+        }
+
+        // Add to cart via API using CartViewModel
+        addToCart(product);
+    }
+
+    private boolean isLoggedIn() {
+        android.content.SharedPreferences prefs = requireActivity().getSharedPreferences("PhoneShopPrefs", android.content.Context.MODE_PRIVATE);
+        return prefs.getBoolean("is_logged_in", false);
+    }
+
+    private void addToCart(Product product) {
+        // Use CartViewModel to add to cart via API
+        com.example.phoneshop.features.feature_cart.CartViewModel cartViewModel = 
+            new androidx.lifecycle.ViewModelProvider(requireActivity()).get(com.example.phoneshop.features.feature_cart.CartViewModel.class);
+        
+        // Thêm vào giỏ hàng
+        cartViewModel.addToCart(product.getId(), 1);
+        Toast.makeText(getContext(), "Đang thêm " + product.getName() + " vào giỏ hàng...", Toast.LENGTH_SHORT).show();
     }
 
     // FlashSaleAdapter callback

@@ -2,116 +2,259 @@ package com.example.phoneshop.features.feature_cart;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
-import com.example.phoneshop.data.model.CartItem; // Giả sử bạn có model này
+import com.example.phoneshop.data.model.CartItem;
+import com.example.phoneshop.data.model.CartResponse;
+import com.example.phoneshop.data.repository.CartRepository;
 
 import java.util.ArrayList;
 import java.util.List;
 
-// (Ghi chú: Bạn nên kế thừa từ BaseViewModel nếu có)
 public class CartViewModel extends ViewModel {
 
+    private final CartRepository repository;
+    
     // Dùng MutableLiveData để Fragment có thể "lắng nghe" (observe) sự thay đổi
-    // (private) Biến để giữ dữ liệu
     private final MutableLiveData<List<CartItem>> _cartItems = new MutableLiveData<>();
     private final MutableLiveData<Long> _totalPrice = new MutableLiveData<>();
     private final MutableLiveData<Boolean> _isEmpty = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>();
+    private final MutableLiveData<String> _error = new MutableLiveData<>();
 
     // (public) Biến LiveData để Fragment truy cập (chỉ đọc)
     public LiveData<List<CartItem>> getCartItems() {
         return _cartItems;
     }
+    
     public LiveData<Long> getTotalPrice() {
         return _totalPrice;
     }
+    
     public LiveData<Boolean> getIsEmpty() {
         return _isEmpty;
+    }
+    
+    public LiveData<Boolean> getIsLoading() {
+        return _isLoading;
+    }
+    
+    public LiveData<String> getError() {
+        return _error;
     }
 
     // Constructor: Nơi bạn sẽ load dữ liệu lần đầu (từ Repository)
     public CartViewModel() {
+        repository = CartRepository.getInstance();
+        _isLoading.setValue(false);
+        _error.setValue("");
         loadCartItems();
     }
 
-    // ***** Nhiệm vụ 1: Load dữ liệu *****
-    // (Đây là nơi bạn sẽ gọi API hoặc Database.
-    // Bây giờ chúng ta sẽ tạo dữ liệu giả (dummy data) để test)
+    // ***** Nhiệm vụ 1: Load dữ liệu từ API *****
     public void loadCartItems() {
-        ArrayList<CartItem> dummyList = new ArrayList<>();
-        // (Bạn sẽ thay thế phần này bằng code gọi Repository)
-        dummyList.add(new CartItem("1", "iPhone 15 Pro", 29990000L, 1, "url_to_image"));
-        dummyList.add(new CartItem("2", "Samsung S24 Ultra", 31490000L, 1, "url_to_image"));
-        // ...
-
-        _cartItems.setValue(dummyList); // Cập nhật LiveData
-        calculateTotalPrice(); // Tính tổng tiền sau khi load
+        _isLoading.setValue(true);
+        _error.setValue("");
+        
+        LiveData<CartResponse> responseLiveData = repository.getCart();
+        
+        Observer<CartResponse> observer = new Observer<CartResponse>() {
+            private boolean hasBeenCalled = false;
+            
+            @Override
+            public void onChanged(CartResponse response) {
+                if (hasBeenCalled) return;
+                hasBeenCalled = true;
+                
+                _isLoading.setValue(false);
+                if (response != null && response.getItems() != null) {
+                    _cartItems.setValue(response.getItems());
+                    _totalPrice.setValue(response.getTotalPrice());
+                    _isEmpty.setValue(response.getItems().isEmpty());
+                    _error.setValue("");
+                } else {
+                    _cartItems.setValue(new ArrayList<>());
+                    _totalPrice.setValue(0L);
+                    _isEmpty.setValue(true);
+                    _error.setValue("Không thể tải giỏ hàng");
+                }
+                responseLiveData.removeObserver(this);
+            }
+        };
+        
+        responseLiveData.observeForever(observer);
     }
 
-    // ***** Nhiệm vụ 2: Tính tổng tiền *****
-    private void calculateTotalPrice() {
-        List<CartItem> items = _cartItems.getValue();
-        if (items == null || items.isEmpty()) {
-            _totalPrice.setValue(0L);
-            _isEmpty.setValue(true); // Giỏ hàng trống
-            return;
-        }
-
-        long total = 0;
-        for (CartItem item : items) {
-            total += item.getPrice() * item.getQuantity();
-        }
-
-        _totalPrice.setValue(total); // Cập nhật LiveData tổng tiền
-        _isEmpty.setValue(false); // Giỏ hàng có đồ
+    // ***** Nhiệm vụ 2: Thêm sản phẩm vào giỏ hàng *****
+    public void addToCart(String productId, int quantity) {
+        _isLoading.setValue(true);
+        _error.setValue("");
+        
+        LiveData<CartResponse> responseLiveData = repository.addToCart(productId, quantity);
+        
+        Observer<CartResponse> observer = new Observer<CartResponse>() {
+            private boolean hasBeenCalled = false;
+            
+            @Override
+            public void onChanged(CartResponse response) {
+                if (hasBeenCalled) return;
+                hasBeenCalled = true;
+                
+                _isLoading.setValue(false);
+                if (response != null && response.getItems() != null) {
+                    _cartItems.setValue(response.getItems());
+                    _totalPrice.setValue(response.getTotalPrice());
+                    _isEmpty.setValue(response.getItems().isEmpty());
+                    _error.setValue("");
+                } else {
+                    _error.setValue("Không thể thêm sản phẩm vào giỏ hàng");
+                }
+                responseLiveData.removeObserver(this);
+            }
+        };
+        
+        responseLiveData.observeForever(observer);
     }
 
     // ***** Nhiệm vụ 3: Xử lý sự kiện từ Adapter (do Fragment gọi) *****
 
     public void onIncreaseClick(CartItem item) {
-        List<CartItem> currentList = _cartItems.getValue();
-        if (currentList == null) return;
-
-        for (CartItem i : currentList) {
-            if (i.getProductId().equals(item.getProductId())) {
-                i.setQuantity(i.getQuantity() + 1); // Tăng số lượng
-                break;
-            }
+        if (item.getId() == null || item.getId().isEmpty()) {
+            return;
         }
-        _cartItems.setValue(currentList); // Cập nhật lại
-        calculateTotalPrice(); // Tính lại tổng tiền
+        
+        _isLoading.setValue(true);
+        _error.setValue("");
+        
+        int newQuantity = item.getQuantity() + 1;
+        LiveData<CartResponse> responseLiveData = repository.updateCartItem(item.getId(), newQuantity);
+        
+        Observer<CartResponse> observer = new Observer<CartResponse>() {
+            private boolean hasBeenCalled = false;
+            
+            @Override
+            public void onChanged(CartResponse response) {
+                if (hasBeenCalled) return;
+                hasBeenCalled = true;
+                
+                _isLoading.setValue(false);
+                if (response != null && response.getItems() != null) {
+                    _cartItems.setValue(response.getItems());
+                    _totalPrice.setValue(response.getTotalPrice());
+                    _isEmpty.setValue(response.getItems().isEmpty());
+                    _error.setValue("");
+                } else {
+                    _error.setValue("Không thể cập nhật giỏ hàng");
+                }
+                responseLiveData.removeObserver(this);
+            }
+        };
+        
+        responseLiveData.observeForever(observer);
     }
 
     public void onDecreaseClick(CartItem item) {
-        List<CartItem> currentList = _cartItems.getValue();
-        if (currentList == null) return;
-
-        for (CartItem i : currentList) {
-            if (i.getProductId().equals(item.getProductId())) {
-                if (i.getQuantity() > 1) { // Chỉ giảm khi > 1
-                    i.setQuantity(i.getQuantity() - 1); // Giảm số lượng
-                }
-                break;
-            }
+        if (item.getId() == null || item.getId().isEmpty()) {
+            return;
         }
-        _cartItems.setValue(currentList); // Cập nhật lại
-        calculateTotalPrice(); // Tính lại tổng tiền
+        
+        if (item.getQuantity() <= 1) {
+            return; // Không giảm nếu số lượng <= 1
+        }
+        
+        _isLoading.setValue(true);
+        _error.setValue("");
+        
+        int newQuantity = item.getQuantity() - 1;
+        LiveData<CartResponse> responseLiveData = repository.updateCartItem(item.getId(), newQuantity);
+        
+        Observer<CartResponse> observer = new Observer<CartResponse>() {
+            private boolean hasBeenCalled = false;
+            
+            @Override
+            public void onChanged(CartResponse response) {
+                if (hasBeenCalled) return;
+                hasBeenCalled = true;
+                
+                _isLoading.setValue(false);
+                if (response != null && response.getItems() != null) {
+                    _cartItems.setValue(response.getItems());
+                    _totalPrice.setValue(response.getTotalPrice());
+                    _isEmpty.setValue(response.getItems().isEmpty());
+                    _error.setValue("");
+                } else {
+                    _error.setValue("Không thể cập nhật giỏ hàng");
+                }
+                responseLiveData.removeObserver(this);
+            }
+        };
+        
+        responseLiveData.observeForever(observer);
     }
 
     public void onDeleteClick(CartItem item) {
-        List<CartItem> currentList = _cartItems.getValue();
-        if (currentList == null) return;
-
-        currentList.remove(item); // Xóa khỏi danh sách
-
-        _cartItems.setValue(currentList); // Cập nhật lại
-        calculateTotalPrice(); // Tính lại tổng tiền
+        if (item.getId() == null || item.getId().isEmpty()) {
+            return;
+        }
+        
+        _isLoading.setValue(true);
+        _error.setValue("");
+        
+        LiveData<CartResponse> responseLiveData = repository.removeFromCart(item.getId());
+        
+        Observer<CartResponse> observer = new Observer<CartResponse>() {
+            private boolean hasBeenCalled = false;
+            
+            @Override
+            public void onChanged(CartResponse response) {
+                if (hasBeenCalled) return;
+                hasBeenCalled = true;
+                
+                _isLoading.setValue(false);
+                if (response != null && response.getItems() != null) {
+                    _cartItems.setValue(response.getItems());
+                    _totalPrice.setValue(response.getTotalPrice());
+                    _isEmpty.setValue(response.getItems().isEmpty());
+                    _error.setValue("");
+                } else {
+                    _error.setValue("Không thể xóa sản phẩm khỏi giỏ hàng");
+                }
+                responseLiveData.removeObserver(this);
+            }
+        };
+        
+        responseLiveData.observeForever(observer);
     }
 
     // ***** Nhiệm vụ 4: Xóa toàn bộ giỏ hàng *****
     public void clearCart() {
-        _cartItems.setValue(new ArrayList<>()); // Xóa tất cả items
-        _totalPrice.setValue(0L); // Reset tổng tiền
-        _isEmpty.setValue(true); // Đánh dấu giỏ hàng trống
+        _isLoading.setValue(true);
+        _error.setValue("");
+        
+        LiveData<Boolean> resultLiveData = repository.clearCart();
+        
+        Observer<Boolean> observer = new Observer<Boolean>() {
+            private boolean hasBeenCalled = false;
+            
+            @Override
+            public void onChanged(Boolean success) {
+                if (hasBeenCalled) return;
+                hasBeenCalled = true;
+                
+                _isLoading.setValue(false);
+                if (success != null && success) {
+                    _cartItems.setValue(new ArrayList<>());
+                    _totalPrice.setValue(0L);
+                    _isEmpty.setValue(true);
+                    _error.setValue("");
+                } else {
+                    _error.setValue("Không thể xóa giỏ hàng");
+                }
+                resultLiveData.removeObserver(this);
+            }
+        };
+        
+        resultLiveData.observeForever(observer);
     }
 }

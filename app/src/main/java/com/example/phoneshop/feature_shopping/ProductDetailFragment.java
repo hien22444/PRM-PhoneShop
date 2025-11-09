@@ -59,7 +59,8 @@ public class ProductDetailFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_product_detail, container, false);
     }
 
@@ -78,9 +79,21 @@ public class ProductDetailFragment extends Fragment {
         // Get product ID from arguments
         if (getArguments() != null) {
             String productId = getArguments().getString("product_id");
+            android.util.Log.d("ProductDetailFragment", "Received product_id: " + productId);
+
             if (productId != null) {
+                // Show loading state
+                progressBar.setVisibility(View.VISIBLE);
                 viewModel.loadProductDetail(productId);
+            } else {
+                Toast.makeText(getContext(), "Lỗi: Không tìm thấy ID sản phẩm", Toast.LENGTH_SHORT).show();
+                android.util.Log.e("ProductDetailFragment", "Product ID is null");
+                navController.navigateUp();
             }
+        } else {
+            Toast.makeText(getContext(), "Lỗi: Không có thông tin sản phẩm", Toast.LENGTH_SHORT).show();
+            android.util.Log.e("ProductDetailFragment", "Arguments bundle is null");
+            navController.navigateUp();
         }
     }
 
@@ -109,8 +122,15 @@ public class ProductDetailFragment extends Fragment {
 
         btnAddToCart.setOnClickListener(v -> {
             if (currentProduct != null && currentProduct.isInStock()) {
+                // Check if user is logged in
+                if (!isLoggedIn()) {
+                    Toast.makeText(getContext(), "Vui lòng đăng nhập để thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
+                    navController.navigate(R.id.action_productDetailFragment_to_loginFragment);
+                    return;
+                }
+
+                addToCart(currentProduct);
                 Toast.makeText(getContext(), "Đã thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
-                // TODO: Implement add to cart
             } else {
                 Toast.makeText(getContext(), "Sản phẩm hết hàng", Toast.LENGTH_SHORT).show();
             }
@@ -118,8 +138,16 @@ public class ProductDetailFragment extends Fragment {
 
         btnBuyNow.setOnClickListener(v -> {
             if (currentProduct != null && currentProduct.isInStock()) {
-                Toast.makeText(getContext(), "Chuyển đến thanh toán", Toast.LENGTH_SHORT).show();
-                // TODO: Navigate to checkout
+                // Check if user is logged in
+                if (!isLoggedIn()) {
+                    Toast.makeText(getContext(), "Vui lòng đăng nhập để mua hàng", Toast.LENGTH_SHORT).show();
+                    navController.navigate(R.id.action_productDetailFragment_to_loginFragment);
+                    return;
+                }
+
+                // Add to cart and navigate to checkout
+                addToCart(currentProduct);
+                navController.navigate(R.id.action_productDetailFragment_to_cartFragment);
             } else {
                 Toast.makeText(getContext(), "Sản phẩm hết hàng", Toast.LENGTH_SHORT).show();
             }
@@ -129,18 +157,28 @@ public class ProductDetailFragment extends Fragment {
     private void observeViewModel() {
         viewModel.getSelectedProduct().observe(getViewLifecycleOwner(), product -> {
             if (product != null) {
+                android.util.Log.d("ProductDetailFragment", "Received product data: " + product.getName());
                 currentProduct = product;
                 displayProductDetails(product);
+            } else {
+                android.util.Log.e("ProductDetailFragment", "Received null product data");
+                Toast.makeText(getContext(), "Không thể tải thông tin sản phẩm", Toast.LENGTH_LONG).show();
+                navController.navigateUp();
             }
         });
 
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
             progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            if (isLoading) {
+                android.util.Log.d("ProductDetailFragment", "Loading product details...");
+            }
         });
 
         viewModel.getError().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
-                Toast.makeText(getContext(), error, Toast.LENGTH_SHORT).show();
+                android.util.Log.e("ProductDetailFragment", "Error loading product: " + error);
+                Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                navController.navigateUp();
             }
         });
     }
@@ -152,11 +190,12 @@ public class ProductDetailFragment extends Fragment {
 
         // Price
         tvPrice.setText(currencyFormat.format(product.getDisplayPrice()));
-        
+
         if (product.isFlashSale()) {
             tvOriginalPrice.setVisibility(View.VISIBLE);
             tvOriginalPrice.setText(currencyFormat.format(product.getPrice()));
-            tvOriginalPrice.setPaintFlags(tvOriginalPrice.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+            tvOriginalPrice
+                    .setPaintFlags(tvOriginalPrice.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
         } else {
             tvOriginalPrice.setVisibility(View.GONE);
         }
@@ -176,8 +215,8 @@ public class ProductDetailFragment extends Fragment {
 
         // Rating
         if (product.getRating() > 0) {
-            tvRating.setText(String.format("⭐ %.1f (%d đánh giá)", 
-                product.getRating(), product.getReviewCount()));
+            tvRating.setText(String.format("⭐ %.1f (%d đánh giá)",
+                    product.getRating(), product.getReviewCount()));
         } else {
             tvRating.setText("Chưa có đánh giá");
         }
@@ -186,8 +225,8 @@ public class ProductDetailFragment extends Fragment {
         if (product.getDescription() != null && !product.getDescription().isEmpty()) {
             tvDescription.setText(product.getDescription());
         } else {
-            tvDescription.setText("Đây là sản phẩm " + product.getName() + " của thương hiệu " + 
-                product.getBrand() + ". Sản phẩm chính hãng, bảo hành đầy đủ.");
+            tvDescription.setText("Đây là sản phẩm " + product.getName() + " của thương hiệu " +
+                    product.getBrand() + ". Sản phẩm chính hãng, bảo hành đầy đủ.");
         }
 
         // Specifications
@@ -222,7 +261,7 @@ public class ProductDetailFragment extends Fragment {
 
         // Setup indicators
         setupIndicators(images.size());
-        
+
         viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -233,18 +272,17 @@ public class ProductDetailFragment extends Fragment {
 
     private void setupIndicators(int count) {
         layoutIndicators.removeAllViews();
-        
+
         for (int i = 0; i < count; i++) {
             View indicator = new View(getContext());
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    24, 24
-            );
+                    24, 24);
             params.setMargins(8, 0, 8, 0);
             indicator.setLayoutParams(params);
             indicator.setBackgroundResource(android.R.drawable.presence_invisible);
             layoutIndicators.addView(indicator);
         }
-        
+
         if (count > 0) {
             updateIndicators(0);
         }
@@ -263,7 +301,7 @@ public class ProductDetailFragment extends Fragment {
 
     private void loadYouTubeVideo(String videoUrl) {
         webViewVideo.getSettings().setJavaScriptEnabled(true);
-        
+
         // Extract video ID from YouTube URL
         String videoId = extractYouTubeVideoId(videoUrl);
         if (videoId != null) {
@@ -283,5 +321,20 @@ public class ProductDetailFragment extends Fragment {
         }
         return null;
     }
-}
 
+    private boolean isLoggedIn() {
+        android.content.SharedPreferences prefs = requireActivity().getSharedPreferences("PhoneShopPrefs",
+                android.content.Context.MODE_PRIVATE);
+        return prefs.getBoolean("is_logged_in", false);
+    }
+
+    private void addToCart(Product product) {
+        // Use CartViewModel to add to cart via API
+        com.example.phoneshop.features.feature_cart.CartViewModel cartViewModel = new ViewModelProvider(
+                requireActivity()).get(com.example.phoneshop.features.feature_cart.CartViewModel.class);
+
+        // Thêm vào giỏ hàng
+        cartViewModel.addToCart(product.getId(), 1);
+        Toast.makeText(getContext(), "Đang thêm vào giỏ hàng...", Toast.LENGTH_SHORT).show();
+    }
+}

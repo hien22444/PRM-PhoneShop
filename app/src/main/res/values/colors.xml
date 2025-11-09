@@ -4,5 +4,31 @@
     <color name="white">#FFFFFFFF</color>
     <color name="purple_500">#6200EE</color>
     <color name="purple_700">#3700B3</color>
-    <color name="status_completed">#4CAF50</color> <color name="status_cancelled">#F44336</color> <color name="status_processing">#9E9E9E</color>
+    <color name="status_completed">#4CAF50</color>
+    <color name="status_cancelled">#F44336</color>
+    <color name="status_processing">#9E9E9E</color>
+    
+    <!-- App Theme Colors -->
+    <color name="primary_color">#6366F1</color>
+    <color name="primary_dark">#4F46E5</color>
+    <color name="accent_color">#EC4899</color>
+    <color name="gradient_start">#EC4899</color>
+    <color name="gradient_end">#6366F1</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#1F2937</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_white">#FFFFFF</color>
+    
+    <!-- Background Colors -->
+    <color name="background_light">#F9FAFB</color>
+    <color name="surface_color">#FFFFFF</color>
+    
+    <!-- Button Colors -->
+    <color name="button_primary">#6366F1</color>
+    <color name="button_secondary">#E5E7EB</color>
+    
+    <!-- Bottom Navigation Colors -->
+    <color name="bottom_nav_selected">#6366F1</color>
+    <color name="bottom_nav_unselected">#9CA3AF</color>
 </resources>
