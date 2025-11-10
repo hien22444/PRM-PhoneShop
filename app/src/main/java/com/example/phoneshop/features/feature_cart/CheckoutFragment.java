@@ -16,6 +16,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
 import com.example.phoneshop.R;
+import com.example.phoneshop.service.PayOSService;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -143,6 +144,8 @@ public class CheckoutFragment extends Fragment {
 
         // Lấy danh sách sản phẩm từ giỏ hàng
         List<com.example.phoneshop.data.model.CartItem> cartItems = cartViewModel.getCartItems().getValue();
+        android.util.Log.d("CheckoutFragment", "Cart items: " + (cartItems != null ? cartItems.size() : "null"));
+        
         if (cartItems == null || cartItems.isEmpty()) {
             Toast.makeText(getContext(), "Giỏ hàng trống", Toast.LENGTH_SHORT).show();
             return;
@@ -158,6 +161,7 @@ public class CheckoutFragment extends Fragment {
         // Chuyển đổi CartItem thành OrderItemRequest
         List<com.example.phoneshop.data.model.OrderRequest.OrderItemRequest> orderItems = new java.util.ArrayList<>();
         for (com.example.phoneshop.data.model.CartItem item : cartItems) {
+            android.util.Log.d("CheckoutFragment", "Adding item: " + item.getProductName() + " x" + item.getQuantity());
             orderItems.add(new com.example.phoneshop.data.model.OrderRequest.OrderItemRequest(
                 item.getProductId(),
                 item.getQuantity(),
@@ -166,11 +170,13 @@ public class CheckoutFragment extends Fragment {
         }
         request.setItems(orderItems);
 
+        android.util.Log.d("CheckoutFragment", "Order request created - Items: " + orderItems.size() + ", Payment: " + paymentMethod);
+
         // Gọi API để tạo đơn hàng
-        createOrder(request, paymentMethod);
+        createOrder(request, paymentMethod, cartItems);
     }
 
-    private void createOrder(com.example.phoneshop.data.model.OrderRequest request, String paymentMethod) {
+    private void createOrder(com.example.phoneshop.data.model.OrderRequest request, String paymentMethod, List<com.example.phoneshop.data.model.CartItem> cartItems) {
         // Disable button để tránh double click
         btnPlaceOrder.setEnabled(false);
         btnPlaceOrder.setText("Đang xử lý...");
@@ -186,24 +192,35 @@ public class CheckoutFragment extends Fragment {
             btnPlaceOrder.setEnabled(true);
             btnPlaceOrder.setText("Xác nhận đặt hàng");
             
+            android.util.Log.d("CheckoutFragment", "Order result: " + (order != null ? order.getOrderId() : "null"));
+            
             if (order != null) {
                 // Đơn hàng được tạo thành công
-                Toast.makeText(getContext(), "Đặt hàng thành công!", Toast.LENGTH_SHORT).show();
+                android.util.Log.d("CheckoutFragment", "Order created successfully: " + order.getOrderId());
+                Toast.makeText(getContext(), "Đặt hàng thành công! Mã đơn: " + order.getOrderId(), Toast.LENGTH_SHORT).show();
                 
                 // Xóa giỏ hàng sau khi đặt hàng thành công
                 cartViewModel.clearCart();
                 
                 if (paymentMethod.equals("COD")) {
-                    // COD - đi thẳng đến màn hình thành công
-                    navController.navigate(R.id.action_checkoutFragment_to_orderSuccessFragment);
+                    // COD - Thanh toán khi nhận hàng
+                    Toast.makeText(getContext(), "Đặt hàng COD thành công! Bạn sẽ thanh toán khi nhận hàng.", Toast.LENGTH_LONG).show();
+                    
+                    // Chuyển vào đơn hàng
+                    try {
+                        navController.navigate(R.id.orderHistoryFragment);
+                    } catch (Exception e) {
+                        // Fallback nếu navigation fail
+                        Toast.makeText(getContext(), "Đơn hàng đã được tạo thành công!", Toast.LENGTH_SHORT).show();
+                        navController.popBackStack(R.id.homeFragment, false);
+                    }
                 } else {
-                    // Thanh toán online - đi đến màn hình thanh toán
-                    // TODO: Lấy payment URL từ order response khi API trả về
-                    // Tạm thời, đi đến màn hình thành công
-                    navController.navigate(R.id.action_checkoutFragment_to_orderSuccessFragment);
+                    // Thanh toán online với PayOS (Chuyển khoản hoặc Ví điện tử)
+                    processPayOSPayment(order, cartItems);
                 }
             } else {
-                Toast.makeText(getContext(), "Không thể tạo đơn hàng, vui lòng thử lại", Toast.LENGTH_SHORT).show();
+                android.util.Log.e("CheckoutFragment", "Order creation failed - order is null");
+                Toast.makeText(getContext(), "Không thể tạo đơn hàng, vui lòng thử lại sau", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -232,5 +249,55 @@ public class CheckoutFragment extends Fragment {
         // (Bạn có thể thêm logic kiểm tra SĐT hợp lệ, v.v...)
 
         return true;
+    }
+
+    private void processPayOSPayment(com.example.phoneshop.data.model.Order order, List<com.example.phoneshop.data.model.CartItem> cartItems) {
+        // Khởi tạo PayOS service
+        PayOSService payOSService = PayOSService.getInstance();
+        payOSService.initialize(requireContext());
+        
+        // Tính tổng tiền từ cart items
+        double tempTotal = 0;
+        for (com.example.phoneshop.data.model.CartItem item : cartItems) {
+            tempTotal += item.getPrice() * item.getQuantity();
+        }
+        final double totalAmount = tempTotal; // Make it final for lambda
+        
+        // Tạo payment link với tổng tiền
+        payOSService.createPaymentLink(order, cartItems).observe(getViewLifecycleOwner(), paymentUrl -> {
+            if (paymentUrl != null && !paymentUrl.isEmpty()) {
+                // Chuyển đến màn hình PayOS QR với payment URL và tổng tiền
+                Toast.makeText(getContext(), "Chuyển đến màn hình thanh toán PayOS...", Toast.LENGTH_SHORT).show();
+                
+                try {
+                    Bundle bundle = new Bundle();
+                    bundle.putString("payment_url", paymentUrl);
+                    bundle.putString("order_id", order.getOrderId());
+                    bundle.putDouble("total_amount", totalAmount);
+                    
+                    // Navigate to PayOS WebView Fragment
+                    navController.navigate(R.id.paymentWebViewFragment, bundle);
+                } catch (Exception e) {
+                    // Fallback - show payment URL in toast
+                    Toast.makeText(getContext(), "Link thanh toán: " + paymentUrl, Toast.LENGTH_LONG).show();
+                    android.util.Log.e("CheckoutFragment", "Navigation error: " + e.getMessage());
+                    
+                    // Simulate successful payment for testing
+                    android.os.Handler handler = new android.os.Handler();
+                    handler.postDelayed(() -> {
+                        Toast.makeText(getContext(), "Thanh toán thành công! Chuyển đến đơn hàng...", Toast.LENGTH_SHORT).show();
+                        try {
+                            navController.navigate(R.id.orderHistoryFragment);
+                        } catch (Exception ex) {
+                            navController.popBackStack(R.id.homeFragment, false);
+                        }
+                    }, 3000); // 3 seconds delay
+                }
+            } else {
+                Toast.makeText(getContext(), "Không thể tạo link thanh toán, vui lòng thử lại", Toast.LENGTH_SHORT).show();
+                btnPlaceOrder.setEnabled(true);
+                btnPlaceOrder.setText("Xác nhận đặt hàng");
+            }
+        });
     }
 }

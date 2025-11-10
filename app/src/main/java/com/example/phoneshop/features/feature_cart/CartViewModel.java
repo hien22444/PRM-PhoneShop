@@ -1,5 +1,6 @@
 package com.example.phoneshop.features.feature_cart;
 
+import android.content.Context;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
@@ -7,6 +8,7 @@ import androidx.lifecycle.ViewModel;
 
 import com.example.phoneshop.data.model.CartItem;
 import com.example.phoneshop.data.model.CartResponse;
+import com.example.phoneshop.data.model.Product;
 import com.example.phoneshop.data.repository.CartRepository;
 
 import java.util.ArrayList;
@@ -49,7 +51,15 @@ public class CartViewModel extends ViewModel {
         repository = CartRepository.getInstance();
         _isLoading.setValue(false);
         _error.setValue("");
-        loadCartItems();
+        _isEmpty.setValue(true);
+        _totalPrice.setValue(0L);
+        _cartItems.setValue(new ArrayList<>());
+    }
+    
+    // Initialize with context for local cart
+    public void initialize(Context context) {
+        repository.initialize(context);
+        loadCartItems(); // Load cart after initialization
     }
 
     // ***** Nhiệm vụ 1: Load dữ liệu từ API *****
@@ -116,11 +126,42 @@ public class CartViewModel extends ViewModel {
         
         responseLiveData.observeForever(observer);
     }
+    
+    // ***** Nhiệm vụ 2b: Thêm sản phẩm vào giỏ hàng (local) *****
+    public void addProductToCart(Product product, int quantity) {
+        _isLoading.setValue(true);
+        _error.setValue("");
+        
+        LiveData<CartResponse> responseLiveData = repository.addProductToCart(product, quantity);
+        
+        Observer<CartResponse> observer = new Observer<CartResponse>() {
+            private boolean hasBeenCalled = false;
+            
+            @Override
+            public void onChanged(CartResponse response) {
+                if (hasBeenCalled) return;
+                hasBeenCalled = true;
+                
+                _isLoading.setValue(false);
+                if (response != null && response.getItems() != null) {
+                    _cartItems.setValue(response.getItems());
+                    _totalPrice.setValue(response.getTotalPrice());
+                    _isEmpty.setValue(response.getItems().isEmpty());
+                    _error.setValue("");
+                } else {
+                    _error.setValue("Không thể thêm sản phẩm vào giỏ hàng");
+                }
+                responseLiveData.removeObserver(this);
+            }
+        };
+        
+        responseLiveData.observeForever(observer);
+    }
 
     // ***** Nhiệm vụ 3: Xử lý sự kiện từ Adapter (do Fragment gọi) *****
 
     public void onIncreaseClick(CartItem item) {
-        if (item.getId() == null || item.getId().isEmpty()) {
+        if (item == null) {
             return;
         }
         
@@ -128,7 +169,7 @@ public class CartViewModel extends ViewModel {
         _error.setValue("");
         
         int newQuantity = item.getQuantity() + 1;
-        LiveData<CartResponse> responseLiveData = repository.updateCartItem(item.getId(), newQuantity);
+        LiveData<CartResponse> responseLiveData = repository.updateCartItemQuantity(item, newQuantity);
         
         Observer<CartResponse> observer = new Observer<CartResponse>() {
             private boolean hasBeenCalled = false;
@@ -155,7 +196,7 @@ public class CartViewModel extends ViewModel {
     }
 
     public void onDecreaseClick(CartItem item) {
-        if (item.getId() == null || item.getId().isEmpty()) {
+        if (item == null) {
             return;
         }
         
@@ -167,7 +208,7 @@ public class CartViewModel extends ViewModel {
         _error.setValue("");
         
         int newQuantity = item.getQuantity() - 1;
-        LiveData<CartResponse> responseLiveData = repository.updateCartItem(item.getId(), newQuantity);
+        LiveData<CartResponse> responseLiveData = repository.updateCartItemQuantity(item, newQuantity);
         
         Observer<CartResponse> observer = new Observer<CartResponse>() {
             private boolean hasBeenCalled = false;
@@ -194,14 +235,14 @@ public class CartViewModel extends ViewModel {
     }
 
     public void onDeleteClick(CartItem item) {
-        if (item.getId() == null || item.getId().isEmpty()) {
+        if (item == null) {
             return;
         }
         
         _isLoading.setValue(true);
         _error.setValue("");
         
-        LiveData<CartResponse> responseLiveData = repository.removeFromCart(item.getId());
+        LiveData<CartResponse> responseLiveData = repository.removeCartItem(item);
         
         Observer<CartResponse> observer = new Observer<CartResponse>() {
             private boolean hasBeenCalled = false;

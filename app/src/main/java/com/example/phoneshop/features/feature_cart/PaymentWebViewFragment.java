@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -22,11 +23,12 @@ import com.example.phoneshop.R;
 public class PaymentWebViewFragment extends Fragment {
 
     // URL trả về mà bạn đăng ký với PayOS
-    private static final String RETURN_URL_SUCCESS = "my-app-scheme://payment-success";
-    private static final String RETURN_URL_CANCEL = "my-app-scheme://payment-cancel";
+    private static final String RETURN_URL_SUCCESS = "phoneshop://payment-success";
+    private static final String RETURN_URL_CANCEL = "phoneshop://payment-cancel";
 
     private WebView webView;
-    private ProgressBar progressBar; // Thêm ProgressBar
+    private ProgressBar progressBar;
+    private TextView tvTotalAmount; // Hiển thị tổng tiền
     private NavController navController;
     private CartViewModel cartViewModel;
 
@@ -47,23 +49,50 @@ public class PaymentWebViewFragment extends Fragment {
         // Ánh xạ View từ layout
         webView = view.findViewById(R.id.webViewPayment);
         progressBar = view.findViewById(R.id.progressBar);
+        tvTotalAmount = view.findViewById(R.id.tvTotalAmount);
+
+        // Check if essential views are found
+        if (webView == null) {
+            Toast.makeText(getContext(), "Lỗi: Không thể tải giao diện thanh toán", Toast.LENGTH_SHORT).show();
+            navController.popBackStack();
+            return;
+        }
 
         // Cài đặt WebView
         webView.getSettings().setJavaScriptEnabled(true);
 
-        // Lấy URL từ CheckoutFragment truyền sang
-        String paymentUrl = getArguments().getString("payment_url");
+        // Lấy dữ liệu từ CheckoutFragment
+        Bundle args = getArguments();
+        if (args == null) {
+            Toast.makeText(getContext(), "Lỗi: Không có thông tin thanh toán", Toast.LENGTH_SHORT).show();
+            navController.popBackStack();
+            return;
+        }
+        
+        String paymentUrl = args.getString("payment_url");
+        String orderId = args.getString("order_id");
+        double totalAmount = args.getDouble("total_amount", 0);
+        
         if (paymentUrl == null) {
             Toast.makeText(getContext(), "Lỗi: Không có link thanh toán", Toast.LENGTH_SHORT).show();
             navController.popBackStack();
             return;
+        }
+        
+        // Hiển thị tổng tiền
+        if (tvTotalAmount != null) {
+            tvTotalAmount.setText(String.format("Tổng tiền: %,.0f₫", totalAmount));
+        } else {
+            android.util.Log.w("PaymentWebView", "tvTotalAmount not found in layout");
         }
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                progressBar.setVisibility(View.VISIBLE); // Hiển thị ProgressBar khi tải
+                if (progressBar != null) {
+                    progressBar.setVisibility(View.VISIBLE); // Hiển thị ProgressBar khi tải
+                }
             }
 
             @Override
@@ -82,7 +111,9 @@ public class PaymentWebViewFragment extends Fragment {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                progressBar.setVisibility(View.GONE); // Ẩn ProgressBar khi tải xong
+                if (progressBar != null) {
+                    progressBar.setVisibility(View.GONE); // Ẩn ProgressBar khi tải xong
+                }
             }
         });
 
@@ -91,9 +122,18 @@ public class PaymentWebViewFragment extends Fragment {
     }
 
     private void handlePaymentSuccess() {
+        Toast.makeText(getContext(), "Thanh toán thành công!", Toast.LENGTH_LONG).show();
+        
+        // Clear cart after successful payment
         cartViewModel.clearCart();
 
-        // Bạn cần tạo Action này trong navgraph
-        navController.navigate(R.id.action_paymentWebViewFragment_to_orderSuccessFragment);
+        // Navigate to order history to show the completed order
+        try {
+            navController.navigate(R.id.orderHistoryFragment);
+        } catch (Exception e) {
+            // Fallback navigation
+            Toast.makeText(getContext(), "Đơn hàng đã được thanh toán thành công!", Toast.LENGTH_SHORT).show();
+            navController.popBackStack(R.id.homeFragment, false);
+        }
     }
 }

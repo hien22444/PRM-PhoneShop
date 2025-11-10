@@ -15,21 +15,24 @@
         app:navigationIcon="@drawable/ic_arrow_back" app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvOrders"
+        android:id="@+id/rvOrderHistory"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toBottomOf="parent"
-        tools:listitem="@layout/item_order_history" /> <TextView
-    android:id="@+id/tvEmptyOrder"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Bạn chưa có đơn hàng nào"
-    android:textSize="18sp"
-    android:visibility="gone" app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toBottomOf="@id/toolbar" />
+        tools:listitem="@layout/item_order_history" />
+
+    <TextView
+        android:id="@+id/tvEmptyOrders"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bạn chưa có đơn hàng nào"
+        android:textSize="18sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/layoutActionButtons"
+        app:layout_constraintBottom_toTopOf="@id/btnAddToCart"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -33,7 +33,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
-                    android:src="@drawable/placeholder_product" />
+                    android:src="@drawable/ic_launcher_background" />
 
             </com.google.android.material.card.MaterialCardView>
 
@@ -123,45 +123,19 @@
 
     </ScrollView>
 
-    <!-- Action Buttons -->
-    <LinearLayout
-        android:id="@+id/layoutActionButtons"
+    <!-- Add to Cart Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAddToCart"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:orientation="horizontal"
-        android:weightSum="2"
+        android:paddingVertical="16dp"
+        android:text="Thêm vào giỏ hàng"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:cornerRadius="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <!-- Add to Cart Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddToCart"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:paddingVertical="16dp"
-            android:text="Thêm vào giỏ"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            app:cornerRadius="12dp" />
-
-        <!-- Buy Now Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBuyNow"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:paddingVertical="16dp"
-            android:text="Mua ngay"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            app:cornerRadius="12dp" />
-
-    </LinearLayout>
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

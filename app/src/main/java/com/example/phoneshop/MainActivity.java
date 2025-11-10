@@ -50,13 +50,34 @@ public class MainActivity extends AppCompatActivity {
         if (bottomNavigation != null) {
             NavigationUI.setupWithNavController(bottomNavigation, navController);
             
+            // Custom click listener to reset to main page of each tab
+            bottomNavigation.setOnItemSelectedListener(item -> {
+                int itemId = item.getItemId();
+                
+                // Always navigate to the main page of each tab
+                if (itemId == R.id.homeFragment) {
+                    navController.navigate(R.id.homeFragment);
+                    return true;
+                } else if (itemId == R.id.cartFragment) {
+                    navController.navigate(R.id.cartFragment);
+                    return true;
+                } else if (itemId == R.id.profileFragment) {
+                    navController.navigate(R.id.profileFragment);
+                    return true;
+                } else if (itemId == R.id.orderHistoryFragment) {
+                    navController.navigate(R.id.orderHistoryFragment);
+                    return true;
+                }
+                
+                return false;
+            });
+            
             // Hide bottom navigation on certain fragments
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
                 int destinationId = destination.getId();
                 if (destinationId == R.id.loginFragment || 
                     destinationId == R.id.registerFragment ||
                     destinationId == R.id.forgotPasswordFragment ||
-                    destinationId == R.id.productDetailFragment ||
                     destinationId == R.id.checkoutFragment ||
                     destinationId == R.id.paymentWebViewFragment ||
                     destinationId == R.id.orderSuccessFragment ||

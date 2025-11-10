@@ -37,23 +37,23 @@ public class ProductDetailFragment extends Fragment {
     private ImagePagerAdapter imagePagerAdapter;
 
     // Views
-    private MaterialToolbar toolbar;
-    private ViewPager2 viewPagerImages;
-    private LinearLayout layoutIndicators;
+    // private MaterialToolbar toolbar; // Removed
+    // private ViewPager2 viewPagerImages; // Removed
+    // private LinearLayout layoutIndicators; // Removed
     private TextView tvProductName;
-    private TextView tvBrand;
-    private TextView tvPrice;
-    private TextView tvOriginalPrice;
-    private TextView tvStock;
-    private TextView tvRating;
-    private TextView tvDescription;
-    private TextView tvSpecifications;
-    private MaterialCardView cardSpecifications;
-    private MaterialCardView cardVideoReview;
-    private WebView webViewVideo;
-    private ProgressBar progressBar;
+    // private TextView tvBrand; // Not in new layout
+    private TextView tvProductPrice; // Changed from tvPrice
+    // private TextView tvOriginalPrice; // Not in new layout
+    // private TextView tvStock; // Not in new layout
+    // private TextView tvRating; // Not in new layout
+    private TextView tvProductDescription; // Changed from tvDescription
+    // private TextView tvSpecifications; // Not in new layout
+    // private MaterialCardView cardSpecifications; // Not in new layout
+    // private MaterialCardView cardVideoReview; // Not in new layout
+    // private WebView webViewVideo; // Not in new layout
+    // private ProgressBar progressBar; // Not in new layout
     private MaterialButton btnAddToCart;
-    private MaterialButton btnBuyNow;
+    // private MaterialButton btnBuyNow; // Not in new layout
 
     private Product currentProduct;
 
@@ -83,7 +83,7 @@ public class ProductDetailFragment extends Fragment {
 
             if (productId != null) {
                 // Show loading state
-                progressBar.setVisibility(View.VISIBLE);
+                // progressBar.setVisibility(View.VISIBLE); // ProgressBar removed from layout
                 viewModel.loadProductDetail(productId);
             } else {
                 Toast.makeText(getContext(), "Lỗi: Không tìm thấy ID sản phẩm", Toast.LENGTH_SHORT).show();
@@ -98,27 +98,27 @@ public class ProductDetailFragment extends Fragment {
     }
 
     private void bindViews(View view) {
-        toolbar = view.findViewById(R.id.toolbar);
-        viewPagerImages = view.findViewById(R.id.viewPagerImages);
-        layoutIndicators = view.findViewById(R.id.layoutIndicators);
+        // toolbar = view.findViewById(R.id.toolbar); // Removed toolbar
+        // viewPagerImages = view.findViewById(R.id.viewPagerImages); // Changed to imgProduct
+        // layoutIndicators = view.findViewById(R.id.layoutIndicators); // Not needed in new layout
         tvProductName = view.findViewById(R.id.tvProductName);
-        tvBrand = view.findViewById(R.id.tvBrand);
-        tvPrice = view.findViewById(R.id.tvPrice);
-        tvOriginalPrice = view.findViewById(R.id.tvOriginalPrice);
-        tvStock = view.findViewById(R.id.tvStock);
-        tvRating = view.findViewById(R.id.tvRating);
-        tvDescription = view.findViewById(R.id.tvDescription);
-        tvSpecifications = view.findViewById(R.id.tvSpecifications);
-        cardSpecifications = view.findViewById(R.id.cardSpecifications);
-        cardVideoReview = view.findViewById(R.id.cardVideoReview);
-        webViewVideo = view.findViewById(R.id.webViewVideo);
-        progressBar = view.findViewById(R.id.progressBar);
+        // tvBrand = view.findViewById(R.id.tvBrand); // Not in new layout
+        tvProductPrice = view.findViewById(R.id.tvProductPrice); // Changed from tvPrice
+        // tvOriginalPrice = view.findViewById(R.id.tvOriginalPrice); // Not in new layout
+        // tvStock = view.findViewById(R.id.tvStock); // Not in new layout
+        // tvRating = view.findViewById(R.id.tvRating); // Not in new layout
+        tvProductDescription = view.findViewById(R.id.tvProductDescription); // Changed from tvDescription
+        // tvSpecifications = view.findViewById(R.id.tvSpecifications); // Not in new layout
+        // cardSpecifications = view.findViewById(R.id.cardSpecifications); // Not in new layout
+        // cardVideoReview = view.findViewById(R.id.cardVideoReview); // Not in new layout
+        // webViewVideo = view.findViewById(R.id.webViewVideo); // Not in new layout
+        // progressBar = view.findViewById(R.id.progressBar); // Not in new layout
         btnAddToCart = view.findViewById(R.id.btnAddToCart);
-        btnBuyNow = view.findViewById(R.id.btnBuyNow);
+        // btnBuyNow = view.findViewById(R.id.btnBuyNow); // Not in new layout
     }
 
     private void setupListeners() {
-        toolbar.setNavigationOnClickListener(v -> navController.navigateUp());
+        // toolbar.setNavigationOnClickListener(v -> navController.navigateUp()); // Toolbar removed
 
         btnAddToCart.setOnClickListener(v -> {
             if (currentProduct != null && currentProduct.isInStock()) {
@@ -136,22 +136,27 @@ public class ProductDetailFragment extends Fragment {
             }
         });
 
-        btnBuyNow.setOnClickListener(v -> {
-            if (currentProduct != null && currentProduct.isInStock()) {
-                // Check if user is logged in
-                if (!isLoggedIn()) {
-                    Toast.makeText(getContext(), "Vui lòng đăng nhập để mua hàng", Toast.LENGTH_SHORT).show();
-                    navController.navigate(R.id.action_productDetailFragment_to_loginFragment);
-                    return;
-                }
-
-                // Add to cart and navigate to checkout
-                addToCart(currentProduct);
-                navController.navigate(R.id.action_productDetailFragment_to_cartFragment);
-            } else {
-                Toast.makeText(getContext(), "Sản phẩm hết hàng", Toast.LENGTH_SHORT).show();
-            }
-        });
+        // btnBuyNow.setOnClickListener(v -> { // BuyNow button removed from layout
+        //     if (currentProduct != null && currentProduct.isInStock()) {
+        //         // Check if user is logged in
+        //         if (!isLoggedIn()) {
+        //             Toast.makeText(getContext(), "Vui lòng đăng nhập để mua hàng", Toast.LENGTH_SHORT).show();
+        //             navController.navigate(R.id.action_productDetailFragment_to_loginFragment);
+        //             return;
+        //         }
+        //
+        //         // Add to cart first
+        //         viewModel.addToCart(currentProduct.getId(), 1);
+        //
+        //         // Navigate to checkout
+        //         Bundle bundle = new Bundle();
+        //         bundle.putString("product_id", currentProduct.getId());
+        //         bundle.putInt("quantity", 1);
+        //         navController.navigate(R.id.action_productDetailFragment_to_checkoutFragment, bundle);
+        //     } else {
+        //         Toast.makeText(getContext(), "Sản phẩm hiện không có sẵn", Toast.LENGTH_SHORT).show();
+        //     }
+        // });
     }
 
     private void observeViewModel() {
@@ -168,7 +173,7 @@ public class ProductDetailFragment extends Fragment {
         });
 
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            // progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE); // ProgressBar removed
             if (isLoading) {
                 android.util.Log.d("ProductDetailFragment", "Loading product details...");
             }
@@ -184,143 +189,100 @@ public class ProductDetailFragment extends Fragment {
     }
 
     private void displayProductDetails(Product product) {
-        // Product name and brand
+        // Only use views that exist in new layout
+        
+        // Product name
         tvProductName.setText(product.getName());
-        tvBrand.setText(product.getBrand());
-
+        
         // Price
-        tvPrice.setText(currencyFormat.format(product.getDisplayPrice()));
-
-        if (product.isFlashSale()) {
-            tvOriginalPrice.setVisibility(View.VISIBLE);
-            tvOriginalPrice.setText(currencyFormat.format(product.getPrice()));
-            tvOriginalPrice
-                    .setPaintFlags(tvOriginalPrice.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
-        } else {
-            tvOriginalPrice.setVisibility(View.GONE);
-        }
-
-        // Stock
-        if (product.isInStock()) {
-            tvStock.setText("Còn hàng: " + product.getStock());
-            tvStock.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-            btnAddToCart.setEnabled(true);
-            btnBuyNow.setEnabled(true);
-        } else {
-            tvStock.setText("Hết hàng");
-            tvStock.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
-            btnAddToCart.setEnabled(false);
-            btnBuyNow.setEnabled(false);
-        }
-
-        // Rating
-        if (product.getRating() > 0) {
-            tvRating.setText(String.format("⭐ %.1f (%d đánh giá)",
-                    product.getRating(), product.getReviewCount()));
-        } else {
-            tvRating.setText("Chưa có đánh giá");
-        }
-
+        tvProductPrice.setText(currencyFormat.format(product.getDisplayPrice()));
+        
         // Description
         if (product.getDescription() != null && !product.getDescription().isEmpty()) {
-            tvDescription.setText(product.getDescription());
+            tvProductDescription.setText(product.getDescription());
         } else {
-            tvDescription.setText("Đây là sản phẩm " + product.getName() + " của thương hiệu " +
-                    product.getBrand() + ". Sản phẩm chính hãng, bảo hành đầy đủ.");
+            tvProductDescription.setText("Đây là sản phẩm " + product.getName() + ". Sản phẩm chính hãng, bảo hành đầy đủ.");
         }
 
-        // Specifications
-        if (product.getSpecifications() != null && !product.getSpecifications().isEmpty()) {
-            cardSpecifications.setVisibility(View.VISIBLE);
-            StringBuilder specs = new StringBuilder();
-            for (String spec : product.getSpecifications()) {
-                specs.append("• ").append(spec).append("\n");
-            }
-            tvSpecifications.setText(specs.toString());
+        // Enable/disable add to cart button based on stock
+        if (product.isInStock()) {
+            btnAddToCart.setEnabled(true);
         } else {
-            cardSpecifications.setVisibility(View.GONE);
+            btnAddToCart.setEnabled(false);
         }
-
-        // Video Review (YouTube embed)
-        if (product.getVideoUrl() != null && !product.getVideoUrl().isEmpty()) {
-            cardVideoReview.setVisibility(View.VISIBLE);
-            loadYouTubeVideo(product.getVideoUrl());
-        } else {
-            cardVideoReview.setVisibility(View.GONE);
-        }
-
-        // Images
-        if (product.getImages() != null && !product.getImages().isEmpty()) {
-            setupImagePager(product.getImages());
-        }
+        
+        // All other views (tvBrand, tvStock, tvRating, etc.) are not in new layout
+        // so we skip them
     }
 
-    private void setupImagePager(java.util.List<String> images) {
-        imagePagerAdapter = new ImagePagerAdapter(getContext(), images);
-        viewPagerImages.setAdapter(imagePagerAdapter);
-
-        // Setup indicators
-        setupIndicators(images.size());
-
-        viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                updateIndicators(position);
-            }
-        });
-    }
-
-    private void setupIndicators(int count) {
-        layoutIndicators.removeAllViews();
-
-        for (int i = 0; i < count; i++) {
-            View indicator = new View(getContext());
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    24, 24);
-            params.setMargins(8, 0, 8, 0);
-            indicator.setLayoutParams(params);
-            indicator.setBackgroundResource(android.R.drawable.presence_invisible);
-            layoutIndicators.addView(indicator);
-        }
-
-        if (count > 0) {
-            updateIndicators(0);
-        }
-    }
-
-    private void updateIndicators(int position) {
-        for (int i = 0; i < layoutIndicators.getChildCount(); i++) {
-            View indicator = layoutIndicators.getChildAt(i);
-            if (i == position) {
-                indicator.setBackgroundResource(android.R.drawable.presence_online);
-            } else {
-                indicator.setBackgroundResource(android.R.drawable.presence_invisible);
-            }
-        }
-    }
-
-    private void loadYouTubeVideo(String videoUrl) {
-        webViewVideo.getSettings().setJavaScriptEnabled(true);
-
-        // Extract video ID from YouTube URL
-        String videoId = extractYouTubeVideoId(videoUrl);
-        if (videoId != null) {
-            String html = "<iframe width=\"100%\" height=\"100%\" " +
-                    "src=\"https://www.youtube.com/embed/" + videoId + "\" " +
-                    "frameborder=\"0\" allowfullscreen></iframe>";
-            webViewVideo.loadData(html, "text/html", "utf-8");
-        }
-    }
-
-    private String extractYouTubeVideoId(String url) {
-        // Simple extraction - can be improved
-        if (url.contains("youtube.com/watch?v=")) {
-            return url.split("v=")[1].split("&")[0];
-        } else if (url.contains("youtu.be/")) {
-            return url.split("youtu.be/")[1].split("\\?")[0];
-        }
-        return null;
-    }
+    // All image pager and video methods commented out since views are not in new layout
+    
+    // private void setupImagePager(java.util.List<String> images) {
+    //     imagePagerAdapter = new ImagePagerAdapter(getContext(), images);
+    //     viewPagerImages.setAdapter(imagePagerAdapter);
+    //
+    //     // Setup indicators
+    //     setupIndicators(images.size());
+    //
+    //     viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+    //         @Override
+    //         public void onPageSelected(int position) {
+    //             updateIndicators(position);
+    //         }
+    //     });
+    // }
+    //
+    // private void setupIndicators(int count) {
+    //     layoutIndicators.removeAllViews();
+    //
+    //     for (int i = 0; i < count; i++) {
+    //         View indicator = new View(getContext());
+    //         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+    //                 24, 24);
+    //         params.setMargins(8, 0, 8, 0);
+    //         indicator.setLayoutParams(params);
+    //         indicator.setBackgroundResource(android.R.drawable.presence_invisible);
+    //         layoutIndicators.addView(indicator);
+    //     }
+    //
+    //     if (count > 0) {
+    //         updateIndicators(0);
+    //     }
+    // }
+    //
+    // private void updateIndicators(int position) {
+    //     for (int i = 0; i < layoutIndicators.getChildCount(); i++) {
+    //         View indicator = layoutIndicators.getChildAt(i);
+    //         if (i == position) {
+    //             indicator.setBackgroundResource(android.R.drawable.presence_online);
+    //         } else {
+    //             indicator.setBackgroundResource(android.R.drawable.presence_invisible);
+    //         }
+    //     }
+    // }
+    //
+    // private void loadYouTubeVideo(String videoUrl) {
+    //     webViewVideo.getSettings().setJavaScriptEnabled(true);
+    //
+    //     // Extract video ID from YouTube URL
+    //     String videoId = extractYouTubeVideoId(videoUrl);
+    //     if (videoId != null) {
+    //         String html = "<iframe width=\"100%\" height=\"100%\" " +
+    //                 "src=\"https://www.youtube.com/embed/" + videoId + "\" " +
+    //                 "frameborder=\"0\" allowfullscreen></iframe>";
+    //         webViewVideo.loadData(html, "text/html", "utf-8");
+    //     }
+    // }
+    //
+    // private String extractYouTubeVideoId(String url) {
+    //     // Simple extraction - can be improved
+    //     if (url.contains("youtube.com/watch?v=")) {
+    //         return url.split("v=")[1].split("&")[0];
+    //     } else if (url.contains("youtu.be/")) {
+    //         return url.split("youtu.be/")[1].split("\\?")[0];
+    //     }
+    //     return null;
+    // }
 
     private boolean isLoggedIn() {
         android.content.SharedPreferences prefs = requireActivity().getSharedPreferences("PhoneShopPrefs",
@@ -329,12 +291,15 @@ public class ProductDetailFragment extends Fragment {
     }
 
     private void addToCart(Product product) {
-        // Use CartViewModel to add to cart via API
+        // Use CartViewModel to add to cart locally
         com.example.phoneshop.features.feature_cart.CartViewModel cartViewModel = new ViewModelProvider(
                 requireActivity()).get(com.example.phoneshop.features.feature_cart.CartViewModel.class);
 
-        // Thêm vào giỏ hàng
-        cartViewModel.addToCart(product.getId(), 1);
-        Toast.makeText(getContext(), "Đang thêm vào giỏ hàng...", Toast.LENGTH_SHORT).show();
+        // Initialize cart with context
+        cartViewModel.initialize(requireContext());
+        
+        // Thêm vào giỏ hàng (local storage)
+        cartViewModel.addProductToCart(product, 1);
+        Toast.makeText(getContext(), "Đã thêm vào giỏ hàng!", Toast.LENGTH_SHORT).show();
     }
 }

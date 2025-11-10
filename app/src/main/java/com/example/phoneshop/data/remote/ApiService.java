@@ -16,7 +16,7 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
-
+import java.util.List;
 public interface ApiService {
 
         // ========== PRODUCT ENDPOINTS ==========
@@ -114,4 +114,8 @@ public interface ApiService {
         // Tạo đơn hàng mới
         @POST("api/orders")
         Call<Order> createOrder(@Body OrderRequest request);
+
+        // Lấy lịch sử đơn hàng
+        @GET("api/orders/history")
+        Call<List<Order>> getOrderHistory();
 }

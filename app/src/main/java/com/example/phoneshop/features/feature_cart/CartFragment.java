@@ -69,6 +69,9 @@ public class CartFragment extends Fragment implements CartAdapter.CartItemListen
 
         // 2. Khởi tạo ViewModel
         viewModel = new ViewModelProvider(this).get(CartViewModel.class);
+        
+        // Initialize cart with context
+        viewModel.initialize(requireContext());
 
         // 3. Ánh xạ Views (Tìm các view từ XML)
         rvCartItems = view.findViewById(R.id.rvCartItems);
@@ -90,8 +93,22 @@ public class CartFragment extends Fragment implements CartAdapter.CartItemListen
             if (!checkLoginStatus()) {
                 return;
             }
-            // Chuyển sang màn hình Thanh toán (Checkout)
-            navController.navigate(R.id.action_cartFragment_to_checkoutFragment);
+            
+            // Check if cart is empty
+            if (viewModel.getCartItems().getValue() == null || 
+                viewModel.getCartItems().getValue().isEmpty()) {
+                Toast.makeText(getContext(), "Giỏ hàng trống", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Navigate to checkout
+            try {
+                navController.navigate(R.id.action_cartFragment_to_checkoutFragment);
+            } catch (Exception e) {
+                // Fallback if navigation fails
+                Toast.makeText(getContext(), "Đang phát triển tính năng thanh toán", Toast.LENGTH_SHORT).show();
+                android.util.Log.e("CartFragment", "Navigation error: " + e.getMessage());
+            }
         });
 
         // (Bạn cũng có thể cài đặt sự kiện cho nút back trên toolbar ở đây)

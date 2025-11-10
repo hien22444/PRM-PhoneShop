@@ -13,8 +13,8 @@ import com.example.phoneshop.R;
 // Giả sử bạn có model tên là CartItem trong gói data.model
 import com.example.phoneshop.data.model.CartItem;
 import java.util.List;
-// Đừng quên thêm thư viện Glide hoặc Picasso để load ảnh
-// import com.bumptech.glide.Glide;
+// Import Glide for image loading
+import com.bumptech.glide.Glide;
 
 public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder> {
 
@@ -48,19 +48,50 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
         CartItem item = cartItems.get(position);
 
         holder.tvProductName.setText(item.getProductName());
-        holder.tvProductPrice.setText(String.format("%,dđ", item.getPrice())); // Format giá tiền
+        holder.tvProductPrice.setText(String.format("%,.0fđ", (double)item.getPrice())); // Format giá tiền
         holder.tvQuantity.setText(String.valueOf(item.getQuantity()));
 
-        // Load ảnh (ví dụ dùng Glide)
-        // Glide.with(context).load(item.getImageUrl()).into(holder.imgProduct);
+        // Load ảnh với Glide
+        if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+            Glide.with(context)
+                    .load(item.getImageUrl())
+                    .placeholder(R.drawable.placeholder_product)
+                    .error(R.drawable.placeholder_product)
+                    .into(holder.imgProduct);
+        } else {
+            holder.imgProduct.setImageResource(R.drawable.placeholder_product);
+        }
 
-        // Bắt sự kiện click
-        holder.btnIncrease.setOnClickListener(v -> listener.onIncreaseClick(item));
-        holder.btnDecrease.setOnClickListener(v -> listener.onDecreaseClick(item));
-        holder.imgDelete.setOnClickListener(v -> listener.onDeleteClick(item));
+        // Clear previous listeners to avoid issues with recycling
+        holder.btnIncrease.setOnClickListener(null);
+        holder.btnDecrease.setOnClickListener(null);
+        holder.imgDelete.setOnClickListener(null);
+
+        // Set new listeners
+        holder.btnIncrease.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onIncreaseClick(item);
+            }
+        });
+        
+        holder.btnDecrease.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDecreaseClick(item);
+            }
+        });
+        
+        holder.imgDelete.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDeleteClick(item);
+            }
+        });
 
         // Không cho giảm khi số lượng là 1
         holder.btnDecrease.setEnabled(item.getQuantity() > 1);
+        
+        // Enable/disable buttons based on item state
+        holder.btnIncrease.setEnabled(true);
+        holder.imgDelete.setEnabled(true);
     }
 
     @Override

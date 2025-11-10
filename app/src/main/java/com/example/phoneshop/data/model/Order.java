@@ -12,6 +12,7 @@ public class Order {
     private String phone;
     private String address;
     private String paymentMethod;
+    private String paymentUrl; // PayOS payment URL
 
     // Constructor rỗng
     public Order() {
@@ -56,4 +57,7 @@ public class Order {
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getPaymentUrl() { return paymentUrl; }
+    public void setPaymentUrl(String paymentUrl) { this.paymentUrl = paymentUrl; }
 }

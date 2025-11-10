@@ -58,7 +58,7 @@ public class ProductRepository {
                     if (productCount > 0) {
                         Product firstProduct = productResponse.getContent().get(0);
                         android.util.Log.d("ProductRepository", String.format(
-                                "Sample product - Name: %s, Price: %f, Brand: %s",
+                                "Sample product - Name: %s, Price: %d, Brand: %s",
                                 firstProduct.getName(), firstProduct.getPrice(), firstProduct.getBrand()));
                     }
 
