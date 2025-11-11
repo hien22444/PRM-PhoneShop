@@ -24,7 +24,7 @@ public class RetrofitClient {
             BASE_URL = "http://10.0.2.2:8080/";
         } else {
             android.util.Log.d("RetrofitClient", "Running on real device, using local network IP");
-            BASE_URL = "http://192.168.1.7:8080/"; // Update this to your actual IP
+            BASE_URL = "http://192.168.1.115:8080/"; // Update this to your actual IP
         }
         android.util.Log.d("RetrofitClient", "Using BASE_URL: " + BASE_URL);
     }
