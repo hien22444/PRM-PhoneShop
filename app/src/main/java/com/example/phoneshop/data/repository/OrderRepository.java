@@ -78,33 +78,43 @@ public class OrderRepository {
     public LiveData<Order> createOrder(OrderRequest request) {
         MutableLiveData<Order> data = new MutableLiveData<>();
 
-        try {
-            // Create mock order for testing (since API might not be ready)
-            Order mockOrder = createMockOrder(request);
-            data.setValue(mockOrder);
-            
-            // TODO: Uncomment this when API is ready
-            /*
-            apiService.createOrder(request).enqueue(new Callback<Order>() {
-                @Override
-                public void onResponse(Call<Order> call, Response<Order> response) {
-                    if (response.isSuccessful() && response.body() != null) {
-                        data.setValue(response.body());
-                    } else {
-                        data.setValue(null);
-                    }
-                }
+        android.util.Log.d("OrderRepository", "Creating order via API - Items: " + 
+            (request.getItems() != null ? request.getItems().size() : "null"));
 
-                @Override
-                public void onFailure(Call<Order> call, Throwable t) {
+        // Use real API call instead of mock
+        apiService.createOrder(request).enqueue(new Callback<Order>() {
+            @Override
+            public void onResponse(Call<Order> call, Response<Order> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    android.util.Log.d("OrderRepository", "Order created successfully via API: " + 
+                        response.body().getOrderId());
+                    data.setValue(response.body());
+                } else {
+                    android.util.Log.e("OrderRepository", "API call failed - Response code: " + 
+                        response.code() + ", Message: " + response.message());
+                    
+                    // Fallback to mock order if API fails
+                    android.util.Log.w("OrderRepository", "Falling back to mock order");
+                    Order mockOrder = createMockOrder(request);
+                    data.setValue(mockOrder);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Order> call, Throwable t) {
+                android.util.Log.e("OrderRepository", "API call failed: " + t.getMessage());
+                
+                // Fallback to mock order if API fails
+                android.util.Log.w("OrderRepository", "Falling back to mock order due to network error");
+                try {
+                    Order mockOrder = createMockOrder(request);
+                    data.setValue(mockOrder);
+                } catch (Exception e) {
+                    android.util.Log.e("OrderRepository", "Mock order creation failed: " + e.getMessage());
                     data.setValue(null);
                 }
-            });
-            */
-        } catch (Exception e) {
-            android.util.Log.e("OrderRepository", "Error creating order: " + e.getMessage());
-            data.setValue(null);
-        }
+            }
+        });
 
         return data;
     }
@@ -134,23 +144,29 @@ public class OrderRepository {
         return order;
     }
 
-    // Lấy lịch sử đơn hàng
-    public LiveData<List<Order>> getOrderHistory() {
+    // Lấy lịch sử đơn hàng theo userId
+    public LiveData<List<Order>> getOrderHistory(String userId) {
         MutableLiveData<List<Order>> data = new MutableLiveData<>();
 
-        apiService.getOrderHistory().enqueue(new Callback<List<Order>>() {
+        android.util.Log.d("OrderRepository", "Getting order history for user: " + userId);
+
+        apiService.getOrderHistory(userId).enqueue(new Callback<List<Order>>() {
             @Override
             public void onResponse(Call<List<Order>> call, Response<List<Order>> response) {
                 if (response.isSuccessful() && response.body() != null) {
+                    android.util.Log.d("OrderRepository", "Order history loaded: " + response.body().size() + " orders");
                     data.setValue(response.body());
                 } else {
-                    data.setValue(null);
+                    android.util.Log.e("OrderRepository", "Failed to load order history - Response code: " + 
+                        response.code() + ", Message: " + response.message());
+                    data.setValue(new java.util.ArrayList<>());
                 }
             }
 
             @Override
             public void onFailure(Call<List<Order>> call, Throwable t) {
-                data.setValue(null);
+                android.util.Log.e("OrderRepository", "Order history API call failed: " + t.getMessage());
+                data.setValue(new java.util.ArrayList<>());
             }
         });
 

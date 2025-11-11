@@ -127,6 +127,16 @@ public class OrderStorageService {
     }
     
     /**
+     * Xóa tất cả dữ liệu local (để chuyển sang API mode)
+     */
+    public void clearAllLocalData() {
+        if (sharedPreferences != null) {
+            sharedPreferences.edit().clear().apply();
+            android.util.Log.d("OrderStorageService", "All local data cleared - switching to API mode");
+        }
+    }
+    
+    /**
      * Đếm số lượng đơn hàng
      */
     public int getOrderCount() {

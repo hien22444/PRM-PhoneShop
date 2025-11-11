@@ -51,20 +51,50 @@ public class OrderHistoryViewModel extends ViewModel {
         orderStorageService.initialize(context);
     }
 
-    public void loadOrderHistory() {
+    public void loadOrderHistory(String userId) {
         _isLoading.setValue(true);
         _error.setValue("");
         
-        try {
-            // Load real orders from storage
-            List<Order> orders = orderStorageService.getAllOrders();
-            
+        android.util.Log.d("OrderHistoryViewModel", "Loading order history for user: " + userId);
+        
+        if (userId == null || userId.isEmpty()) {
+            android.util.Log.e("OrderHistoryViewModel", "UserId is null or empty");
             _isLoading.setValue(false);
-            _orders.setValue(orders);
-            _isEmpty.setValue(orders.isEmpty());
-            _error.setValue("");
+            _orders.setValue(new ArrayList<>());
+            _isEmpty.setValue(true);
+            _error.setValue("Vui lòng đăng nhập để xem lịch sử đơn hàng");
+            return;
+        }
+        
+        try {
+            // Use API to load orders instead of local storage
+            LiveData<List<Order>> orderHistoryLiveData = repository.getOrderHistory(userId);
             
-            android.util.Log.d("OrderHistoryViewModel", "Loaded " + orders.size() + " orders from storage");
+            Observer<List<Order>> observer = new Observer<List<Order>>() {
+                private boolean hasBeenCalled = false;
+                
+                @Override
+                public void onChanged(List<Order> orders) {
+                    if (hasBeenCalled) return;
+                    hasBeenCalled = true;
+                    
+                    _isLoading.setValue(false);
+                    if (orders != null) {
+                        _orders.setValue(orders);
+                        _isEmpty.setValue(orders.isEmpty());
+                        _error.setValue("");
+                        android.util.Log.d("OrderHistoryViewModel", "Loaded " + orders.size() + " orders from API");
+                    } else {
+                        _orders.setValue(new ArrayList<>());
+                        _isEmpty.setValue(true);
+                        _error.setValue("Không thể tải lịch sử đơn hàng từ server");
+                        android.util.Log.e("OrderHistoryViewModel", "Orders is null from API");
+                    }
+                    orderHistoryLiveData.removeObserver(this);
+                }
+            };
+            
+            orderHistoryLiveData.observeForever(observer);
             
         } catch (Exception e) {
             android.util.Log.e("OrderHistoryViewModel", "Error loading orders: " + e.getMessage());
@@ -74,8 +104,24 @@ public class OrderHistoryViewModel extends ViewModel {
             _error.setValue("Không thể tải lịch sử đơn hàng: " + e.getMessage());
         }
     }
+    
+    // Backward compatibility method
+    public void loadOrderHistory() {
+        // Try to get userId from somewhere or show error
+        android.util.Log.w("OrderHistoryViewModel", "loadOrderHistory() called without userId - this is deprecated");
+        _isLoading.setValue(false);
+        _orders.setValue(new ArrayList<>());
+        _isEmpty.setValue(true);
+        _error.setValue("Vui lòng đăng nhập để xem lịch sử đơn hàng");
+    }
 
+    public void refreshOrders(String userId) {
+        loadOrderHistory(userId);
+    }
+    
+    // Backward compatibility method
     public void refreshOrders() {
+        android.util.Log.w("OrderHistoryViewModel", "refreshOrders() called without userId - this is deprecated");
         loadOrderHistory();
     }
 }

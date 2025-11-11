@@ -89,9 +89,19 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
             // Observe ViewModel
             observeViewModel();
 
-            // Load orders
+            // Load orders with userId
             if (viewModel != null) {
-                viewModel.loadOrderHistory();
+                String userId = sharedPreferences.getString("user_id", "");
+                if (!userId.isEmpty()) {
+                    android.util.Log.d("OrderHistoryFragment", "Loading orders for user: " + userId);
+                    viewModel.loadOrderHistory(userId);
+                } else {
+                    android.util.Log.e("OrderHistoryFragment", "No userId found in SharedPreferences");
+                    Toast.makeText(getContext(), "Vui lòng đăng nhập để xem lịch sử đơn hàng", Toast.LENGTH_SHORT).show();
+                    if (navController != null) {
+                        navController.popBackStack();
+                    }
+                }
             }
             
         } catch (Exception e) {
@@ -213,5 +223,19 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
         // Bundle bundle = new Bundle();
         // bundle.putString("order_id", order.getId());
         // navController.navigate(R.id.action_orderHistoryFragment_to_reviewFragment, bundle);
+    }
+
+    @Override
+    public void onProductClick(Order order, String productId) {
+        // Navigate to product detail
+        try {
+            Bundle bundle = new Bundle();
+            bundle.putString("product_id", productId);
+            android.util.Log.d("OrderHistoryFragment", "Navigating to product detail with ID: " + productId);
+            navController.navigate(R.id.action_orderHistoryFragment_to_productDetailFragment, bundle);
+        } catch (Exception e) {
+            android.util.Log.e("OrderHistoryFragment", "Product navigation error: " + e.getMessage(), e);
+            Toast.makeText(getContext(), "Xem chi tiết sản phẩm từ đơn hàng #" + order.getOrderId(), Toast.LENGTH_SHORT).show();
+        }
     }
 }

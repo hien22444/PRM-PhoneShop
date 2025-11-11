@@ -165,6 +165,9 @@
         <action
             android:id="@+id/action_orderHistoryFragment_to_orderDetailFragment"
             app:destination="@id/orderDetailFragment" />
+        <action
+            android:id="@+id/action_orderHistoryFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
     </fragment>
 
     <!-- Fragment 6: Chi tiết đơn hàng -->
