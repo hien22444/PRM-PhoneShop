@@ -5,11 +5,11 @@
         android:icon="@drawable/ic_home"
         android:title="Trang Chủ" />
     
-    <item
-        android:id="@+id/productSearchFragment"
-        android:icon="@drawable/ic_search"
-        android:title="Tìm Kiếm" />
-    
+<!--    <item-->
+<!--        android:id="@+id/productSearchFragment"-->
+<!--        android:icon="@drawable/ic_search"-->
+<!--        android:title="Tìm Kiếm" />-->
+<!--    -->
     <item
         android:id="@+id/cartFragment"
         android:icon="@drawable/ic_shopping_cart"

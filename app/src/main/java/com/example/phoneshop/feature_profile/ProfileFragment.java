@@ -108,11 +108,11 @@ public class ProfileFragment extends Fragment {
         });
 
         cardSettings.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Tính năng đang phát triển", Toast.LENGTH_SHORT).show();
+            navController.navigate(R.id.action_profileFragment_to_settingsFragment);
         });
 
         cardSupport.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Tính năng đang phát triển", Toast.LENGTH_SHORT).show();
+            navController.navigate(R.id.action_profileFragment_to_supportFragment);
         });
     }
 

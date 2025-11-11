@@ -28,6 +28,8 @@ import com.google.android.material.card.MaterialCardView;
 
 import java.text.NumberFormat;
 import java.util.Locale;
+import android.widget.ImageView;
+import com.bumptech.glide.Glide;
 
 public class ProductDetailFragment extends Fragment {
 
@@ -35,6 +37,7 @@ public class ProductDetailFragment extends Fragment {
     private NavController navController;
     private NumberFormat currencyFormat;
     private ImagePagerAdapter imagePagerAdapter;
+    private ImageView imgProduct;
 
     // Views
     // private MaterialToolbar toolbar; // Removed
@@ -53,7 +56,7 @@ public class ProductDetailFragment extends Fragment {
     // private WebView webViewVideo; // Not in new layout
     // private ProgressBar progressBar; // Not in new layout
     private MaterialButton btnAddToCart;
-    // private MaterialButton btnBuyNow; // Not in new layout
+     private MaterialButton btnBuyNow; // Not in new layout
 
     private Product currentProduct;
 
@@ -114,7 +117,8 @@ public class ProductDetailFragment extends Fragment {
         // webViewVideo = view.findViewById(R.id.webViewVideo); // Not in new layout
         // progressBar = view.findViewById(R.id.progressBar); // Not in new layout
         btnAddToCart = view.findViewById(R.id.btnAddToCart);
-        // btnBuyNow = view.findViewById(R.id.btnBuyNow); // Not in new layout
+         btnBuyNow = view.findViewById(R.id.btnBuyNow); // Not in new layout
+        imgProduct = view.findViewById(R.id.imgProduct);
     }
 
     private void setupListeners() {
@@ -136,27 +140,29 @@ public class ProductDetailFragment extends Fragment {
             }
         });
 
-        // btnBuyNow.setOnClickListener(v -> { // BuyNow button removed from layout
-        //     if (currentProduct != null && currentProduct.isInStock()) {
-        //         // Check if user is logged in
-        //         if (!isLoggedIn()) {
-        //             Toast.makeText(getContext(), "Vui lòng đăng nhập để mua hàng", Toast.LENGTH_SHORT).show();
-        //             navController.navigate(R.id.action_productDetailFragment_to_loginFragment);
-        //             return;
-        //         }
-        //
-        //         // Add to cart first
-        //         viewModel.addToCart(currentProduct.getId(), 1);
-        //
-        //         // Navigate to checkout
-        //         Bundle bundle = new Bundle();
-        //         bundle.putString("product_id", currentProduct.getId());
-        //         bundle.putInt("quantity", 1);
-        //         navController.navigate(R.id.action_productDetailFragment_to_checkoutFragment, bundle);
-        //     } else {
-        //         Toast.makeText(getContext(), "Sản phẩm hiện không có sẵn", Toast.LENGTH_SHORT).show();
-        //     }
-        // });
+
+        btnBuyNow.setOnClickListener(v -> {
+            if (currentProduct != null && currentProduct.isInStock()) {
+                // 1. Kiểm tra đăng nhập
+                if (!isLoggedIn()) {
+                    Toast.makeText(getContext(), "Vui lòng đăng nhập để mua hàng", Toast.LENGTH_SHORT).show();
+                    // TODO: Thay 'R.id.action_productDetailFragment_to_loginFragment' bằng ID action của bạn
+                    navController.navigate(R.id.action_productDetailFragment_to_loginFragment);
+                    return;
+                }
+
+                // 2. Thêm vào giỏ hàng (dùng hàm có sẵn)
+                addToCart(currentProduct);
+
+                // 3. Chuyển đến màn hình giỏ hàng
+                // **QUAN TRỌNG**: Thay 'R.id.action_productDetailFragment_to_cartFragment'
+                // bằng ID action (mũi tên) trong nav_graph.xml của bạn.
+                navController.navigate(R.id.action_productDetailFragment_to_cartFragment);
+
+            } else {
+                Toast.makeText(getContext(), "Sản phẩm hiện không có sẵn", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void observeViewModel() {
@@ -196,6 +202,17 @@ public class ProductDetailFragment extends Fragment {
         
         // Price
         tvProductPrice.setText(currencyFormat.format(product.getDisplayPrice()));
+
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            Glide.with(requireContext())
+                    .load(product.getImages().get(0)) // Tải ảnh đầu tiên
+                    .placeholder(R.drawable.placeholder_product) // Ảnh giữ chỗ
+                    .error(R.drawable.placeholder_product) // Ảnh khi lỗi
+                    .into(imgProduct); // Đặt vào ImageView
+        } else {
+            // Nếu sản phẩm không có ảnh
+            imgProduct.setImageResource(R.drawable.placeholder_product);
+        }
         
         // Description
         if (product.getDescription() != null && !product.getDescription().isEmpty()) {

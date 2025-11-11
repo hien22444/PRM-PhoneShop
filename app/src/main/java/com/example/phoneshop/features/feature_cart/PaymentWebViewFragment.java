@@ -124,6 +124,21 @@ public class PaymentWebViewFragment extends Fragment {
     private void handlePaymentSuccess() {
         Toast.makeText(getContext(), "Thanh toán thành công!", Toast.LENGTH_LONG).show();
         
+        // Get order ID from arguments to update status
+        Bundle args = getArguments();
+        if (args != null) {
+            String orderId = args.getString("order_id");
+            if (orderId != null) {
+                // Update order status to "Đã thanh toán"
+                com.example.phoneshop.service.OrderStorageService orderStorage = 
+                    com.example.phoneshop.service.OrderStorageService.getInstance();
+                orderStorage.initialize(requireContext());
+                orderStorage.updateOrderStatus(orderId, "Đã thanh toán");
+                
+                android.util.Log.d("PaymentWebView", "Updated order status: " + orderId + " -> Đã thanh toán");
+            }
+        }
+        
         // Clear cart after successful payment
         cartViewModel.clearCart();
 

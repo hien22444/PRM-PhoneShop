@@ -199,6 +199,12 @@ public class CheckoutFragment extends Fragment {
                 android.util.Log.d("CheckoutFragment", "Order created successfully: " + order.getOrderId());
                 Toast.makeText(getContext(), "Đặt hàng thành công! Mã đơn: " + order.getOrderId(), Toast.LENGTH_SHORT).show();
                 
+                // Lưu đơn hàng vào storage
+                com.example.phoneshop.service.OrderStorageService orderStorage = 
+                    com.example.phoneshop.service.OrderStorageService.getInstance();
+                orderStorage.initialize(requireContext());
+                orderStorage.saveOrder(order);
+                
                 // Xóa giỏ hàng sau khi đặt hàng thành công
                 cartViewModel.clearCart();
                 

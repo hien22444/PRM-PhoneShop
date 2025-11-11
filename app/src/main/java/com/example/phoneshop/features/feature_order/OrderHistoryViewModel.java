@@ -1,5 +1,6 @@
 package com.example.phoneshop.features.feature_order;
 
+import android.content.Context;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
@@ -7,6 +8,7 @@ import androidx.lifecycle.ViewModel;
 
 import com.example.phoneshop.data.model.Order;
 import com.example.phoneshop.data.repository.OrderRepository;
+import com.example.phoneshop.service.OrderStorageService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.List;
 public class OrderHistoryViewModel extends ViewModel {
 
     private final OrderRepository repository;
+    private OrderStorageService orderStorageService;
     
     private final MutableLiveData<List<Order>> _orders = new MutableLiveData<>();
     private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>();
@@ -38,9 +41,14 @@ public class OrderHistoryViewModel extends ViewModel {
 
     public OrderHistoryViewModel() {
         repository = OrderRepository.getInstance();
+        orderStorageService = OrderStorageService.getInstance();
         _isLoading.setValue(false);
         _isEmpty.setValue(true);
         _error.setValue("");
+    }
+    
+    public void initialize(Context context) {
+        orderStorageService.initialize(context);
     }
 
     public void loadOrderHistory() {
@@ -48,52 +56,23 @@ public class OrderHistoryViewModel extends ViewModel {
         _error.setValue("");
         
         try {
-            // Create mock data for testing
-            List<Order> mockOrders = createMockOrders();
+            // Load real orders from storage
+            List<Order> orders = orderStorageService.getAllOrders();
             
             _isLoading.setValue(false);
-            _orders.setValue(mockOrders);
-            _isEmpty.setValue(mockOrders.isEmpty());
+            _orders.setValue(orders);
+            _isEmpty.setValue(orders.isEmpty());
             _error.setValue("");
             
+            android.util.Log.d("OrderHistoryViewModel", "Loaded " + orders.size() + " orders from storage");
+            
         } catch (Exception e) {
+            android.util.Log.e("OrderHistoryViewModel", "Error loading orders: " + e.getMessage());
             _isLoading.setValue(false);
             _orders.setValue(new ArrayList<>());
             _isEmpty.setValue(true);
             _error.setValue("Không thể tải lịch sử đơn hàng: " + e.getMessage());
         }
-    }
-    
-    private List<Order> createMockOrders() {
-        List<Order> orders = new ArrayList<>();
-        
-        // Mock order 1
-        Order order1 = new Order();
-        order1.setOrderId("ORD001");
-        order1.setOrderDate("2024-11-10");
-        order1.setStatus("Hoàn thành");
-        order1.setTotalPrice(15750000L);
-        order1.setItemCount(3);
-        order1.setFullName("Nguyễn Văn A");
-        order1.setPhone("0123456789");
-        order1.setAddress("123 Đường ABC, Quận 1, TP.HCM");
-        order1.setPaymentMethod("COD");
-        orders.add(order1);
-        
-        // Mock order 2
-        Order order2 = new Order();
-        order2.setOrderId("ORD002");
-        order2.setOrderDate("2024-11-09");
-        order2.setStatus("Đang giao");
-        order2.setTotalPrice(29990000L);
-        order2.setItemCount(1);
-        order2.setFullName("Nguyễn Văn A");
-        order2.setPhone("0123456789");
-        order2.setAddress("123 Đường ABC, Quận 1, TP.HCM");
-        order2.setPaymentMethod("PayOS");
-        orders.add(order2);
-        
-        return orders;
     }
 
     public void refreshOrders() {

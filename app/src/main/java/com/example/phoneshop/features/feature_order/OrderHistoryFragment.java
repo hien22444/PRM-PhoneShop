@@ -58,15 +58,29 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
 
             // Khởi tạo ViewModel
             viewModel = new ViewModelProvider(this).get(OrderHistoryViewModel.class);
+            
+            // Initialize ViewModel with context
+            viewModel.initialize(requireContext());
 
             // Ánh xạ Views
             toolbar = view.findViewById(R.id.toolbar);
             rvOrderHistory = view.findViewById(R.id.rvOrderHistory);
             tvEmptyOrders = view.findViewById(R.id.tvEmptyOrders);
 
+            // Kiểm tra views có null không
+            if (rvOrderHistory == null) {
+                android.util.Log.e("OrderHistoryFragment", "RecyclerView is null");
+                Toast.makeText(getContext(), "Lỗi khởi tạo giao diện", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             // Setup toolbar
             if (toolbar != null) {
-                toolbar.setNavigationOnClickListener(v -> navController.navigateUp());
+                toolbar.setNavigationOnClickListener(v -> {
+                    if (navController != null) {
+                        navController.navigateUp();
+                    }
+                });
             }
 
             // Setup RecyclerView
@@ -76,11 +90,13 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
             observeViewModel();
 
             // Load orders
-            viewModel.loadOrderHistory();
+            if (viewModel != null) {
+                viewModel.loadOrderHistory();
+            }
             
         } catch (Exception e) {
-            android.util.Log.e("OrderHistoryFragment", "Error in onViewCreated: " + e.getMessage());
-            Toast.makeText(getContext(), "Lỗi khi tải lịch sử đơn hàng", Toast.LENGTH_SHORT).show();
+            android.util.Log.e("OrderHistoryFragment", "Error in onViewCreated: " + e.getMessage(), e);
+            Toast.makeText(getContext(), "Lỗi khi tải lịch sử đơn hàng: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             
             // Show empty state
             if (tvEmptyOrders != null) {
@@ -177,20 +193,20 @@ public class OrderHistoryFragment extends Fragment implements OrderHistoryAdapte
 
     @Override
     public void onOrderClick(Order order) {
-        // TODO: Add navigation action to nav_graph.xml
         // Navigate to order detail
-        Toast.makeText(getContext(), "Xem chi tiết đơn hàng #" + order.getOrderId(), Toast.LENGTH_SHORT).show();
-        
-        // Uncomment when nav_graph.xml is updated:
-        // Bundle bundle = new Bundle();
-        // bundle.putString("order_id", order.getId());
-        // navController.navigate(R.id.action_orderHistoryFragment_to_orderDetailFragment, bundle);
+        try {
+            Bundle bundle = new Bundle();
+            bundle.putString("order_id", order.getOrderId());
+            navController.navigate(R.id.action_orderHistoryFragment_to_orderDetailFragment, bundle);
+        } catch (Exception e) {
+            android.util.Log.e("OrderHistoryFragment", "Navigation error: " + e.getMessage());
+            Toast.makeText(getContext(), "Xem chi tiết đơn hàng #" + order.getOrderId(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     public void onReviewClick(Order order) {
-        // TODO: Add navigation action to nav_graph.xml
-        // Navigate to review screen
+        // TODO: Add navigation to review fragment
         Toast.makeText(getContext(), "Đánh giá đơn hàng #" + order.getOrderId(), Toast.LENGTH_SHORT).show();
         
         // Uncomment when nav_graph.xml is updated:
