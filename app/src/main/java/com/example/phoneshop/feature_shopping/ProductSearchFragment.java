@@ -284,7 +284,52 @@ public class ProductSearchFragment extends Fragment implements ProductAdapter.On
 
     @Override
     public void onAddToCartClick(Product product) {
-        Toast.makeText(getContext(), "Đã thêm " + product.getName() + " vào giỏ hàng", Toast.LENGTH_SHORT).show();
+        // Check if user is logged in
+        if (!isLoggedIn()) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Add to cart functionality
+        addToCart(product);
+    }
+
+    private boolean isLoggedIn() {
+        android.content.SharedPreferences prefs = requireActivity().getSharedPreferences("PhoneShopPrefs", android.content.Context.MODE_PRIVATE);
+        return prefs.getBoolean("is_logged_in", false);
+    }
+
+    private void addToCart(Product product) {
+        // Use CartViewModel to add to cart
+        com.example.phoneshop.features.feature_cart.CartViewModel cartViewModel = 
+            new androidx.lifecycle.ViewModelProvider(requireActivity()).get(com.example.phoneshop.features.feature_cart.CartViewModel.class);
+        
+        // Initialize CartViewModel if needed
+        cartViewModel.initialize(requireContext());
+        
+        // Thêm vào giỏ hàng với Product object
+        cartViewModel.addProductToCart(product, 1);
+        
+        // Show loading message
+        Toast.makeText(getContext(), "Đang thêm " + product.getName() + " vào giỏ hàng...", Toast.LENGTH_SHORT).show();
+        
+        // Observe the result to show success/error feedback
+        cartViewModel.getError().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        // Observe loading state
+        cartViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            if (!isLoading) {
+                // Check if there's no error, then it's success
+                String error = cartViewModel.getError().getValue();
+                if (error == null || error.isEmpty()) {
+                    Toast.makeText(getContext(), "Đã thêm " + product.getName() + " vào giỏ hàng!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
     
     @Override

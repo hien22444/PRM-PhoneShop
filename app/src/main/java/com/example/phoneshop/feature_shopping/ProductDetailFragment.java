@@ -311,7 +311,27 @@ public class ProductDetailFragment extends Fragment {
         
         // Thêm vào giỏ hàng (local storage)
         cartViewModel.addProductToCart(product, 1);
-        Toast.makeText(getContext(), "Đã thêm vào giỏ hàng!", Toast.LENGTH_SHORT).show();
+        
+        // Show loading message
+        Toast.makeText(getContext(), "Đang thêm " + product.getName() + " vào giỏ hàng...", Toast.LENGTH_SHORT).show();
+        
+        // Observe the result to show success/error feedback
+        cartViewModel.getError().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        // Observe loading state
+        cartViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            if (!isLoading) {
+                // Check if there's no error, then it's success
+                String error = cartViewModel.getError().getValue();
+                if (error == null || error.isEmpty()) {
+                    Toast.makeText(getContext(), "Đã thêm " + product.getName() + " vào giỏ hàng!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     private void toggleFavorite() {

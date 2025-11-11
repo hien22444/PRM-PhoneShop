@@ -219,9 +219,32 @@ public class HomeFragment extends Fragment implements
         com.example.phoneshop.features.feature_cart.CartViewModel cartViewModel = 
             new androidx.lifecycle.ViewModelProvider(requireActivity()).get(com.example.phoneshop.features.feature_cart.CartViewModel.class);
         
-        // Thêm vào giỏ hàng
-        cartViewModel.addToCart(product.getId(), 1);
+        // Initialize CartViewModel if needed
+        cartViewModel.initialize(requireContext());
+        
+        // Thêm vào giỏ hàng với Product object
+        cartViewModel.addProductToCart(product, 1);
+        
+        // Show loading message
         Toast.makeText(getContext(), "Đang thêm " + product.getName() + " vào giỏ hàng...", Toast.LENGTH_SHORT).show();
+        
+        // Observe the result to show success/error feedback
+        cartViewModel.getError().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        // Observe loading state
+        cartViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            if (!isLoading) {
+                // Check if there's no error, then it's success
+                String error = cartViewModel.getError().getValue();
+                if (error == null || error.isEmpty()) {
+                    Toast.makeText(getContext(), "Đã thêm " + product.getName() + " vào giỏ hàng!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     // FlashSaleAdapter callback
