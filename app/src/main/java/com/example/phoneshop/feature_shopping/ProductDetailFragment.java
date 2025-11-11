@@ -21,6 +21,8 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.phoneshop.R;
 import com.example.phoneshop.data.model.Product;
+import com.example.phoneshop.data.repository.FavoriteRepository;
+import com.example.phoneshop.data.repository.ProductRepository;
 import com.example.phoneshop.feature_shopping.adapters.ImagePagerAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -37,28 +39,19 @@ public class ProductDetailFragment extends Fragment {
     private NavController navController;
     private NumberFormat currencyFormat;
     private ImagePagerAdapter imagePagerAdapter;
-    private ImageView imgProduct;
-
+    private FavoriteRepository favoriteRepository;
+    
     // Views
-    // private MaterialToolbar toolbar; // Removed
-    // private ViewPager2 viewPagerImages; // Removed
-    // private LinearLayout layoutIndicators; // Removed
+    private ImageView imgProduct;
     private TextView tvProductName;
-    // private TextView tvBrand; // Not in new layout
-    private TextView tvProductPrice; // Changed from tvPrice
-    // private TextView tvOriginalPrice; // Not in new layout
-    // private TextView tvStock; // Not in new layout
-    // private TextView tvRating; // Not in new layout
-    private TextView tvProductDescription; // Changed from tvDescription
-    // private TextView tvSpecifications; // Not in new layout
-    // private MaterialCardView cardSpecifications; // Not in new layout
-    // private MaterialCardView cardVideoReview; // Not in new layout
-    // private WebView webViewVideo; // Not in new layout
-    // private ProgressBar progressBar; // Not in new layout
+    private TextView tvProductPrice;
+    private TextView tvProductDescription;
+    private ImageView ivFavorite;
     private MaterialButton btnAddToCart;
-     private MaterialButton btnBuyNow; // Not in new layout
+    private MaterialButton btnBuyNow;
 
     private Product currentProduct;
+    private String currentUserId = "user_123"; // Temporary user ID, should get from session
 
     @Nullable
     @Override
@@ -74,6 +67,10 @@ public class ProductDetailFragment extends Fragment {
         viewModel = new ViewModelProvider(requireActivity()).get(ShoppingViewModel.class);
         navController = Navigation.findNavController(view);
         currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+        
+        // Initialize FavoriteRepository
+        ProductRepository productRepository = ProductRepository.getInstance();
+        favoriteRepository = new FavoriteRepository(requireContext(), productRepository);
 
         bindViews(view);
         setupListeners();
@@ -101,28 +98,22 @@ public class ProductDetailFragment extends Fragment {
     }
 
     private void bindViews(View view) {
-        // toolbar = view.findViewById(R.id.toolbar); // Removed toolbar
-        // viewPagerImages = view.findViewById(R.id.viewPagerImages); // Changed to imgProduct
-        // layoutIndicators = view.findViewById(R.id.layoutIndicators); // Not needed in new layout
-        tvProductName = view.findViewById(R.id.tvProductName);
-        // tvBrand = view.findViewById(R.id.tvBrand); // Not in new layout
-        tvProductPrice = view.findViewById(R.id.tvProductPrice); // Changed from tvPrice
-        // tvOriginalPrice = view.findViewById(R.id.tvOriginalPrice); // Not in new layout
-        // tvStock = view.findViewById(R.id.tvStock); // Not in new layout
-        // tvRating = view.findViewById(R.id.tvRating); // Not in new layout
-        tvProductDescription = view.findViewById(R.id.tvProductDescription); // Changed from tvDescription
-        // tvSpecifications = view.findViewById(R.id.tvSpecifications); // Not in new layout
-        // cardSpecifications = view.findViewById(R.id.cardSpecifications); // Not in new layout
-        // cardVideoReview = view.findViewById(R.id.cardVideoReview); // Not in new layout
-        // webViewVideo = view.findViewById(R.id.webViewVideo); // Not in new layout
-        // progressBar = view.findViewById(R.id.progressBar); // Not in new layout
-        btnAddToCart = view.findViewById(R.id.btnAddToCart);
-         btnBuyNow = view.findViewById(R.id.btnBuyNow); // Not in new layout
         imgProduct = view.findViewById(R.id.imgProduct);
+        tvProductName = view.findViewById(R.id.tvProductName);
+        tvProductPrice = view.findViewById(R.id.tvProductPrice);
+        tvProductDescription = view.findViewById(R.id.tvProductDescription);
+        ivFavorite = view.findViewById(R.id.ivFavorite);
+        btnAddToCart = view.findViewById(R.id.btnAddToCart);
+        btnBuyNow = view.findViewById(R.id.btnBuyNow);
     }
 
     private void setupListeners() {
-        // toolbar.setNavigationOnClickListener(v -> navController.navigateUp()); // Toolbar removed
+        // Favorite button listener
+        ivFavorite.setOnClickListener(v -> {
+            if (currentProduct != null) {
+                toggleFavorite();
+            }
+        });
 
         btnAddToCart.setOnClickListener(v -> {
             if (currentProduct != null && currentProduct.isInStock()) {
@@ -221,6 +212,9 @@ public class ProductDetailFragment extends Fragment {
             tvProductDescription.setText("Đây là sản phẩm " + product.getName() + ". Sản phẩm chính hãng, bảo hành đầy đủ.");
         }
 
+        // Check and update favorite status
+        checkFavoriteStatus();
+
         // Enable/disable add to cart button based on stock
         if (product.isInStock()) {
             btnAddToCart.setEnabled(true);
@@ -318,5 +312,40 @@ public class ProductDetailFragment extends Fragment {
         // Thêm vào giỏ hàng (local storage)
         cartViewModel.addProductToCart(product, 1);
         Toast.makeText(getContext(), "Đã thêm vào giỏ hàng!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void toggleFavorite() {
+        if (currentProduct == null) return;
+
+        boolean isFavorite = favoriteRepository.isFavorite(currentUserId, currentProduct.getId());
+        
+        if (isFavorite) {
+            // Remove from favorites
+            favoriteRepository.removeFromFavorites(currentUserId, currentProduct.getId());
+            updateFavoriteIcon(false);
+            Toast.makeText(getContext(), "Đã xóa khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show();
+        } else {
+            // Add to favorites
+            favoriteRepository.addToFavorites(currentUserId, currentProduct);
+            updateFavoriteIcon(true);
+            Toast.makeText(getContext(), "Đã thêm vào danh sách yêu thích", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void updateFavoriteIcon(boolean isFavorite) {
+        if (isFavorite) {
+            ivFavorite.setImageResource(android.R.drawable.btn_star_big_on);
+            ivFavorite.setColorFilter(getResources().getColor(android.R.color.holo_red_dark));
+        } else {
+            ivFavorite.setImageResource(android.R.drawable.btn_star_big_off);
+            ivFavorite.setColorFilter(getResources().getColor(android.R.color.darker_gray));
+        }
+    }
+
+    private void checkFavoriteStatus() {
+        if (currentProduct != null) {
+            boolean isFavorite = favoriteRepository.isFavorite(currentUserId, currentProduct.getId());
+            updateFavoriteIcon(isFavorite);
+        }
     }
 }

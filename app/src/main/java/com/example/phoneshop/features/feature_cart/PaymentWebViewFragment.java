@@ -17,6 +17,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.example.phoneshop.R;
 
@@ -142,7 +143,50 @@ public class PaymentWebViewFragment extends Fragment {
         // Clear cart after successful payment
         cartViewModel.clearCart();
 
-        // Navigate to order history to show the completed order
+        // Show review prompt dialog
+        showReviewPromptDialog(args);
+    }
+
+    private void showReviewPromptDialog(Bundle args) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Đánh giá sản phẩm")
+                .setMessage("Bạn có muốn đánh giá sản phẩm vừa mua không? Đánh giá của bạn sẽ giúp người khác có thêm thông tin tham khảo.")
+                .setPositiveButton("Đánh giá ngay", (dialog, which) -> {
+                    // Navigate to review fragment
+                    navigateToReview(args);
+                })
+                .setNegativeButton("Để sau", (dialog, which) -> {
+                    // Navigate to order history
+                    navigateToOrderHistory();
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    private void navigateToReview(Bundle args) {
+        if (args != null) {
+            String orderId = args.getString("order_id");
+            // For simplicity, we'll navigate to review for the first product
+            // In a real app, you might show a list of products to review
+            
+            Bundle reviewBundle = new Bundle();
+            reviewBundle.putString("order_id", orderId);
+            reviewBundle.putString("product_id", "sample_product_id"); // Should get from order items
+            reviewBundle.putString("product_name", "Sản phẩm vừa mua"); // Should get from order items
+            reviewBundle.putString("product_image_url", ""); // Should get from order items
+            
+            try {
+                navController.navigate(R.id.action_paymentWebViewFragment_to_reviewFragment, reviewBundle);
+            } catch (Exception e) {
+                android.util.Log.e("PaymentWebView", "Error navigating to review", e);
+                navigateToOrderHistory();
+            }
+        } else {
+            navigateToOrderHistory();
+        }
+    }
+
+    private void navigateToOrderHistory() {
         try {
             navController.navigate(R.id.orderHistoryFragment);
         } catch (Exception e) {

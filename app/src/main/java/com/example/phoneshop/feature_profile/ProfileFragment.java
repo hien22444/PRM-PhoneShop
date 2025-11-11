@@ -29,6 +29,7 @@ public class ProfileFragment extends Fragment {
     private TextView tvUserEmail;
     private MaterialCardView cardEditProfile;
     private MaterialCardView cardOrderHistory;
+    private MaterialCardView cardFavorites;
     private MaterialCardView cardSettings;
     private MaterialCardView cardSupport;
     private MaterialButton btnLogout;
@@ -62,6 +63,7 @@ public class ProfileFragment extends Fragment {
         tvUserEmail = view.findViewById(R.id.tvUserEmail);
         cardEditProfile = view.findViewById(R.id.cardEditProfile);
         cardOrderHistory = view.findViewById(R.id.cardOrderHistory);
+        cardFavorites = view.findViewById(R.id.cardFavorites);
         cardSettings = view.findViewById(R.id.cardSettings);
         cardSupport = view.findViewById(R.id.cardSupport);
         btnLogout = view.findViewById(R.id.btnLogout);
@@ -105,6 +107,10 @@ public class ProfileFragment extends Fragment {
                 Toast.makeText(getContext(), "Vui lòng đăng nhập để xem đơn hàng", Toast.LENGTH_SHORT).show();
                 navController.navigate(R.id.action_profileFragment_to_loginFragment);
             }
+        });
+
+        cardFavorites.setOnClickListener(v -> {
+            navController.navigate(R.id.action_profileFragment_to_favoriteFragment);
         });
 
         cardSettings.setOnClickListener(v -> {

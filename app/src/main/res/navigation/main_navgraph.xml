@@ -63,6 +63,9 @@
         <action
             android:id="@+id/action_profileFragment_to_supportFragment"
             app:destination="@id/supportFragment" />
+        <action
+            android:id="@+id/action_profileFragment_to_favoriteFragment"
+            app:destination="@id/favoriteFragment" />
     </fragment>
 
     <!-- Edit Profile Fragment -->
@@ -127,6 +130,9 @@
             app:destination="@id/orderSuccessFragment"
             app:popUpTo="@id/checkoutFragment"
             app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_paymentWebViewFragment_to_reviewFragment"
+            app:destination="@id/reviewFragment" />
     </fragment>
 
     <!-- Fragment 4: Thành công -->
@@ -259,6 +265,43 @@
             android:name="product_price"
             app:argType="long"
             android:defaultValue="0L" />
+    </fragment>
+
+    <!-- ========== FAVORITE & REVIEW FEATURES ========== -->
+    
+    <!-- Favorite Fragment -->
+    <fragment
+        android:id="@+id/favoriteFragment"
+        android:name="com.example.phoneshop.feature_profile.FavoriteFragment"
+        android:label="fragment_favorite"
+        tools:layout="@layout/fragment_favorite" >
+        <action
+            android:id="@+id/action_favoriteFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
+
+    <!-- Review Fragment -->
+    <fragment
+        android:id="@+id/reviewFragment"
+        android:name="com.example.phoneshop.feature_review.ReviewFragment"
+        android:label="fragment_review"
+        tools:layout="@layout/fragment_single_review" >
+        <argument
+            android:name="order_id"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="product_id"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="product_name"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="product_image_url"
+            app:argType="string"
+            app:nullable="true" />
     </fragment>
 
 </navigation>

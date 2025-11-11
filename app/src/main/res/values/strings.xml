@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">PhoneShop</string>
+    <string name="search_hint">Tìm kiếm sản phẩm...</string>
+    <string name="chip_all">Tất cả</string>
+    <string name="flash_sale_title">⚡ Flash Sale</string>
+    <string name="products_title">Sản phẩm</string>
+    <string name="view_all">Xem tất cả</string>
+    <string name="empty_products">Không có sản phẩm nào</string>
 </resources>
