@@ -132,47 +132,17 @@ public class ProductRepository {
 
     // Tìm kiếm sản phẩm
     public LiveData<ProductResponse> searchProducts(String query, int page, int size) {
-        MutableLiveData<ProductResponse> data = new MutableLiveData<>();
-
-        apiService.searchProducts(query, page, size).enqueue(new Callback<ProductResponse>() {
-            @Override
-            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    data.setValue(response.body());
-                } else {
-                    data.setValue(null);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ProductResponse> call, Throwable t) {
-                data.setValue(null);
-            }
-        });
-
-        return data;
+        android.util.Log.d("ProductRepository", "Searching products with query: " + query);
+        
+        // Use the main getProducts method with query parameter for better consistency
+        return getProducts(page, size, query, null, null);
     }
 
     // Lọc theo thương hiệu
     public LiveData<ProductResponse> getProductsByBrand(String brand, int page, int size) {
-        MutableLiveData<ProductResponse> data = new MutableLiveData<>();
-
-        apiService.getProductsByBrand(brand, page, size).enqueue(new Callback<ProductResponse>() {
-            @Override
-            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    data.setValue(response.body());
-                } else {
-                    data.setValue(null);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ProductResponse> call, Throwable t) {
-                data.setValue(null);
-            }
-        });
-
-        return data;
+        android.util.Log.d("ProductRepository", "Filtering products by brand: " + brand);
+        
+        // Use the main getProducts method with brand parameter for better consistency
+        return getProducts(page, size, null, brand, null);
     }
 }

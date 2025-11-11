@@ -140,6 +140,9 @@ public class HomeFragment extends Fragment implements
                 } else if (checkedId == R.id.chipOppo) {
                     viewModel.filterByBrand("OPPO");
                 }
+            } else {
+                // If no chip is selected, show all products
+                viewModel.resetProducts();
             }
         });
 

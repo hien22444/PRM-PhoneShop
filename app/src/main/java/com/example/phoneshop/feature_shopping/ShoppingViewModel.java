@@ -23,6 +23,13 @@ public class ShoppingViewModel extends ViewModel {
         return _products;
     }
 
+    // LiveData riêng cho kết quả tìm kiếm
+    private final MutableLiveData<List<Product>> _searchResults = new MutableLiveData<>();
+
+    public LiveData<List<Product>> getSearchResults() {
+        return _searchResults;
+    }
+
     // LiveData cho Flash Sale
     private final MutableLiveData<List<Product>> _flashSaleProducts = new MutableLiveData<>();
 
@@ -171,6 +178,8 @@ public class ShoppingViewModel extends ViewModel {
             return;
         }
 
+        android.util.Log.d("ShoppingViewModel", "Starting search with query: '" + query + "'");
+        
         _isLoading.setValue(true);
         _error.setValue("");
         currentPage = 0;
@@ -190,18 +199,69 @@ public class ShoppingViewModel extends ViewModel {
 
                 _isLoading.setValue(false);
                 if (response != null && response.getContent() != null) {
-                    List<Product> products = response.getContent();
-                    _products.setValue(products);
-                    _isEmpty.setValue(products.isEmpty());
+                    List<Product> allProducts = response.getContent();
+                    android.util.Log.d("ShoppingViewModel", "API returned " + allProducts.size() + " products for query: '" + query + "'");
+                    
+                    // Client-side filtering with priority for product name search
+                    List<Product> filteredProducts = new ArrayList<>();
+                    String searchQuery = query.toLowerCase().trim();
+                    
+                    android.util.Log.d("ShoppingViewModel", "Filtering products with query: '" + searchQuery + "'");
+                    
+                    for (Product product : allProducts) {
+                        boolean matches = false;
+                        String matchReason = "";
+                        
+                        // Priority 1: Check if product name contains query (most important)
+                        if (product.getName() != null && product.getName().toLowerCase().contains(searchQuery)) {
+                            matches = true;
+                            matchReason = "name";
+                        }
+                        
+                        // Priority 2: Check if brand contains query
+                        if (!matches && product.getBrand() != null && product.getBrand().toLowerCase().contains(searchQuery)) {
+                            matches = true;
+                            matchReason = "brand";
+                        }
+                        
+                        // Priority 3: Check if category contains query
+                        if (!matches && product.getCategory() != null && product.getCategory().toLowerCase().contains(searchQuery)) {
+                            matches = true;
+                            matchReason = "category";
+                        }
+                        
+                        // Priority 4: Check if description contains query (least priority)
+                        if (!matches && product.getDescription() != null && product.getDescription().toLowerCase().contains(searchQuery)) {
+                            matches = true;
+                            matchReason = "description";
+                        }
+                        
+                        if (matches) {
+                            filteredProducts.add(product);
+                            android.util.Log.d("ShoppingViewModel", "Product matched by " + matchReason + ": " + product.getName() + " (" + product.getBrand() + ")");
+                        }
+                    }
+                    
+                    android.util.Log.d("ShoppingViewModel", "After client filtering: " + filteredProducts.size() + " products match query: '" + query + "'");
+                    
+                    // Log first few filtered products for debugging
+                    for (int i = 0; i < Math.min(3, filteredProducts.size()); i++) {
+                        Product p = filteredProducts.get(i);
+                        android.util.Log.d("ShoppingViewModel", "Filtered Product " + (i+1) + ": " + p.getName() + " - " + p.getBrand());
+                    }
+                    
+                    _searchResults.setValue(filteredProducts);
+                    _isEmpty.setValue(filteredProducts.isEmpty());
                     isLastPage = currentPage >= response.getTotalPages() - 1;
-                    if (products.isEmpty()) {
-                        _error.setValue("Không tìm thấy sản phẩm nào với từ khóa: " + query);
+                    if (filteredProducts.isEmpty()) {
+                        _error.setValue("Không tìm thấy sản phẩm nào với từ khóa: \"" + query + "\"\nThử tìm kiếm với tên sản phẩm hoặc loại sản phẩm khác");
                     } else {
                         _error.setValue("");
                     }
                 } else {
+                    android.util.Log.e("ShoppingViewModel", "Search response is null or empty for query: '" + query + "'");
                     _error.setValue("Không tìm thấy sản phẩm");
-                    _products.setValue(new ArrayList<>());
+                    _searchResults.setValue(new ArrayList<>()); // Use search results instead of main products
                     _isEmpty.setValue(true);
                 }
                 // Remove observer sau khi nhận được response
@@ -214,13 +274,16 @@ public class ShoppingViewModel extends ViewModel {
 
     // Lọc theo thương hiệu
     public void filterByBrand(String brand) {
+        android.util.Log.d("ShoppingViewModel", "Filtering by brand: '" + brand + "'");
+        
         _isLoading.setValue(true);
         _error.setValue("");
         currentPage = 0;
         isLastPage = false;
 
-        LiveData<ProductResponse> responseLiveData = repository.getProductsByBrand(
-                brand, currentPage, pageSize);
+        // Get all products and filter client-side
+        LiveData<ProductResponse> responseLiveData = repository.getProducts(
+                currentPage, pageSize, null, null, null);
 
         Observer<ProductResponse> observer = new Observer<ProductResponse>() {
             private boolean hasBeenCalled = false;
@@ -233,8 +296,22 @@ public class ShoppingViewModel extends ViewModel {
 
                 _isLoading.setValue(false);
                 if (response != null && response.getContent() != null) {
-                    _products.setValue(response.getContent());
-                    _isEmpty.setValue(response.getContent().isEmpty());
+                    List<Product> allProducts = response.getContent();
+                    android.util.Log.d("ShoppingViewModel", "API returned " + allProducts.size() + " products for brand filter: '" + brand + "'");
+                    
+                    // Client-side filtering by brand
+                    List<Product> filteredProducts = new ArrayList<>();
+                    
+                    for (Product product : allProducts) {
+                        if (product.getBrand() != null && product.getBrand().equalsIgnoreCase(brand)) {
+                            filteredProducts.add(product);
+                        }
+                    }
+                    
+                    android.util.Log.d("ShoppingViewModel", "After brand filtering: " + filteredProducts.size() + " products match brand: '" + brand + "'");
+                    
+                    _products.setValue(filteredProducts);
+                    _isEmpty.setValue(filteredProducts.isEmpty());
                     isLastPage = currentPage >= response.getTotalPages() - 1;
                     _error.setValue("");
                 } else {
@@ -296,5 +373,77 @@ public class ShoppingViewModel extends ViewModel {
         _products.setValue(new ArrayList<>());
         _error.setValue("");
         loadProducts();
+    }
+
+    // Clear search results
+    public void clearSearchResults() {
+        _searchResults.setValue(new ArrayList<>());
+        _error.setValue("");
+        _isEmpty.setValue(true);
+    }
+
+    // Search products by name only (more specific search)
+    public void searchProductsByName(String productName) {
+        if (productName == null || productName.trim().isEmpty()) {
+            _error.setValue("Vui lòng nhập tên sản phẩm");
+            return;
+        }
+
+        android.util.Log.d("ShoppingViewModel", "Searching products by name only: '" + productName + "'");
+        
+        _isLoading.setValue(true);
+        _error.setValue("");
+        currentPage = 0;
+        isLastPage = false;
+
+        LiveData<ProductResponse> responseLiveData = repository.searchProducts(
+                productName.trim(), currentPage, pageSize);
+
+        Observer<ProductResponse> observer = new Observer<ProductResponse>() {
+            private boolean hasBeenCalled = false;
+
+            @Override
+            public void onChanged(ProductResponse response) {
+                if (hasBeenCalled)
+                    return;
+                hasBeenCalled = true;
+
+                _isLoading.setValue(false);
+                if (response != null && response.getContent() != null) {
+                    List<Product> allProducts = response.getContent();
+                    
+                    // Filter only by product name (strict name search)
+                    List<Product> nameFilteredProducts = new ArrayList<>();
+                    String searchName = productName.toLowerCase().trim();
+                    
+                    for (Product product : allProducts) {
+                        if (product.getName() != null && product.getName().toLowerCase().contains(searchName)) {
+                            nameFilteredProducts.add(product);
+                            android.util.Log.d("ShoppingViewModel", "Name match: " + product.getName());
+                        }
+                    }
+                    
+                    android.util.Log.d("ShoppingViewModel", "Name-only search found: " + nameFilteredProducts.size() + " products");
+                    
+                    _searchResults.setValue(nameFilteredProducts);
+                    _isEmpty.setValue(nameFilteredProducts.isEmpty());
+                    isLastPage = currentPage >= response.getTotalPages() - 1;
+                    
+                    if (nameFilteredProducts.isEmpty()) {
+                        _error.setValue("Không tìm thấy sản phẩm nào có tên chứa: \"" + productName + "\"");
+                    } else {
+                        _error.setValue("");
+                    }
+                } else {
+                    android.util.Log.e("ShoppingViewModel", "Name search response is null for: '" + productName + "'");
+                    _error.setValue("Không tìm thấy sản phẩm");
+                    _searchResults.setValue(new ArrayList<>());
+                    _isEmpty.setValue(true);
+                }
+                responseLiveData.removeObserver(this);
+            }
+        };
+
+        responseLiveData.observeForever(observer);
     }
 }
