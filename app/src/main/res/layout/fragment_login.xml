@@ -14,8 +14,8 @@
         <!-- 🎨 Decorative Circles -->
         <View
             android:id="@+id/decorCircle1"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:layout_marginTop="32dp"
             android:layout_marginEnd="32dp"
             android:alpha="0.3"
@@ -39,7 +39,7 @@
             android:id="@+id/tvWelcome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="80dp"
+            android:layout_marginTop="10dp"
             android:text="Hello!"
             android:textColor="@color/text_white"
             android:textSize="32sp"
@@ -52,7 +52,7 @@
             android:id="@+id/tvSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:alpha="0.9"
             android:text="Welcome to PhoneShop!"
             android:textAlignment="center"
@@ -65,9 +65,9 @@
         <!-- 📱 Illustration -->
         <ImageView
             android:id="@+id/ivPhone"
-            android:layout_width="100dp"
-            android:layout_height="120dp"
-            android:layout_marginTop="24dp"
+            android:layout_width="50dp"
+            android:layout_height="70dp"
+            android:layout_marginTop="15dp"
             android:alpha="0.8"
             android:src="@drawable/ic_phone_placeholder"
             app:layout_constraintStart_toStartOf="parent"
@@ -79,7 +79,7 @@
             android:id="@+id/cardLogin"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="20dp"
             app:cardCornerRadius="20dp"
             app:cardElevation="8dp"
             app:layout_constraintStart_toStartOf="parent"
@@ -90,7 +90,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="15dp">
 
                 <!-- 👤 Username -->
                 <com.google.android.material.textfield.TextInputLayout
@@ -167,7 +167,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginBottom="2dp"
                     android:text="Recovery Password"
                     android:textColor="@color/text_secondary" />
             </LinearLayout>

@@ -151,12 +151,32 @@ public class CheckoutFragment extends Fragment {
             return;
         }
 
-        // Tạo OrderRequest
+        // Get current user ID from SharedPreferences
+        android.content.SharedPreferences sharedPreferences = 
+            requireActivity().getSharedPreferences("PhoneShopPrefs", android.content.Context.MODE_PRIVATE);
+        String userId = sharedPreferences.getString("user_id", "");
+        String userEmail = sharedPreferences.getString("user_email", "");
+        
+        if (userId.isEmpty()) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để đặt hàng", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Tạo OrderRequest với format mới cho API /api/orders/from-cart
         com.example.phoneshop.data.model.OrderRequest request = new com.example.phoneshop.data.model.OrderRequest();
+        request.setUserId(userId);
+        request.setPaymentMethod(paymentMethod);
+        request.setShippingAddress(address);
+        
+        // Tạo CustomerInfo object
+        com.example.phoneshop.data.model.OrderRequest.CustomerInfo customerInfo = 
+            new com.example.phoneshop.data.model.OrderRequest.CustomerInfo(fullName, phone, userEmail, address);
+        request.setCustomerInfo(customerInfo);
+
+        // Legacy fields for backward compatibility (nếu cần)
         request.setFullName(fullName);
         request.setPhone(phone);
         request.setAddress(address);
-        request.setPaymentMethod(paymentMethod);
 
         // Chuyển đổi CartItem thành OrderItemRequest
         List<com.example.phoneshop.data.model.OrderRequest.OrderItemRequest> orderItems = new java.util.ArrayList<>();
