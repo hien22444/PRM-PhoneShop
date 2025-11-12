@@ -14,6 +14,13 @@ import com.example.phoneshop.data.remote.RetrofitClient;
 import com.example.phoneshop.features.feature_admin.model.AdminLoginResponse;
 import com.example.phoneshop.features.feature_admin.model.AdminStatsResponse;
 import com.example.phoneshop.features.feature_admin.model.AdminResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminRevenueResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminOrderStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminUserStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminProductStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminOrdersResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminCustomerResponse;
+import com.example.phoneshop.features.feature_admin.model.OrderStatusUpdateRequest;
 
 import java.util.List;
 
@@ -39,6 +46,15 @@ public class AdminViewModel extends ViewModel {
     
     // Dashboard statistics
     private MutableLiveData<AdminStatsResponse> dashboardStats = new MutableLiveData<>();
+    private MutableLiveData<AdminRevenueResponse> revenueStats = new MutableLiveData<>();
+    private MutableLiveData<AdminOrderStatsResponse> orderStats = new MutableLiveData<>();
+    private MutableLiveData<AdminUserStatsResponse> userStats = new MutableLiveData<>();
+    private MutableLiveData<AdminProductStatsResponse> productStats = new MutableLiveData<>();
+    
+    // Order management
+    private MutableLiveData<AdminOrdersResponse> adminOrders = new MutableLiveData<>();
+    private MutableLiveData<AdminCustomerResponse> customerDetails = new MutableLiveData<>();
+    private MutableLiveData<Boolean> orderUpdateResult = new MutableLiveData<>();
     
     // User management
     private MutableLiveData<List<User>> usersList = new MutableLiveData<>();
@@ -65,6 +81,13 @@ public class AdminViewModel extends ViewModel {
     public LiveData<String> getErrorMessage() { return errorMessage; }
     public LiveData<AdminLoginResponse> getAdminLoginResult() { return adminLoginResult; }
     public LiveData<AdminStatsResponse> getDashboardStats() { return dashboardStats; }
+    public LiveData<AdminRevenueResponse> getRevenueStats() { return revenueStats; }
+    public LiveData<AdminOrderStatsResponse> getOrderStats() { return orderStats; }
+    public LiveData<AdminUserStatsResponse> getUserStats() { return userStats; }
+    public LiveData<AdminProductStatsResponse> getProductStats() { return productStats; }
+    public LiveData<AdminOrdersResponse> getAdminOrders() { return adminOrders; }
+    public LiveData<AdminCustomerResponse> getCustomerDetails() { return customerDetails; }
+    public LiveData<Boolean> getOrderUpdateResult() { return orderUpdateResult; }
     public LiveData<List<User>> getUsersList() { return usersList; }
     public LiveData<User> getSelectedUser() { return selectedUser; }
     public LiveData<List<Order>> getOrdersList() { return ordersList; }
@@ -242,36 +265,8 @@ public class AdminViewModel extends ViewModel {
     // ==================== ORDER MANAGEMENT ====================
     
     public void loadOrders(int page, int size, String status, String query) {
-        isLoading.setValue(true);
-        errorMessage.setValue(null);
-        
-        Log.d(TAG, "Loading orders - page: " + page + ", status: " + status + ", query: " + query);
-        
-        Call<AdminResponse<Order>> call = apiService.getAdminOrders(page, size, status, query);
-        call.enqueue(new Callback<AdminResponse<Order>>() {
-            @Override
-            public void onResponse(Call<AdminResponse<Order>> call, Response<AdminResponse<Order>> response) {
-                isLoading.setValue(false);
-                
-                if (response.isSuccessful() && response.body() != null) {
-                    AdminResponse<Order> result = response.body();
-                    if (result.getContent() != null) {
-                        Log.d(TAG, "Orders loaded: " + result.getContent().size());
-                        ordersList.setValue(result.getContent());
-                    }
-                } else {
-                    Log.e(TAG, "Failed to load orders: " + response.code());
-                    errorMessage.setValue("Không thể tải danh sách đơn hàng");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<AdminResponse<Order>> call, Throwable t) {
-                isLoading.setValue(false);
-                Log.e(TAG, "Orders loading network error", t);
-                errorMessage.setValue("Lỗi kết nối khi tải đơn hàng");
-            }
-        });
+        // Delegate to the new loadAdminOrders method
+        loadAdminOrders(page, size, status, query);
     }
     
     public void getOrderDetail(String orderId) {
@@ -295,36 +290,6 @@ public class AdminViewModel extends ViewModel {
             public void onFailure(Call<AdminResponse<Order>> call, Throwable t) {
                 isLoading.setValue(false);
                 errorMessage.setValue("Lỗi kết nối khi tải thông tin đơn hàng");
-            }
-        });
-    }
-    
-    public void updateOrderStatus(String orderId, String newStatus) {
-        isLoading.setValue(true);
-        
-        Call<AdminResponse> call = apiService.updateAdminOrderStatus(orderId, new OrderStatusRequest(newStatus));
-        call.enqueue(new Callback<AdminResponse>() {
-            @Override
-            public void onResponse(Call<AdminResponse> call, Response<AdminResponse> response) {
-                isLoading.setValue(false);
-                
-                if (response.isSuccessful() && response.body() != null) {
-                    operationResult.setValue(response.body());
-                } else {
-                    AdminResponse errorResult = new AdminResponse();
-                    errorResult.setSuccess(false);
-                    errorResult.setMessage("Không thể cập nhật trạng thái đơn hàng");
-                    operationResult.setValue(errorResult);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<AdminResponse> call, Throwable t) {
-                isLoading.setValue(false);
-                AdminResponse errorResult = new AdminResponse();
-                errorResult.setSuccess(false);
-                errorResult.setMessage("Lỗi kết nối khi cập nhật đơn hàng");
-                operationResult.setValue(errorResult);
             }
         });
     }
@@ -490,5 +455,245 @@ public class AdminViewModel extends ViewModel {
         
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
+    }
+    
+    // ==================== NEW STATISTICS METHODS ====================
+    
+    public void loadRevenueStats(String startDate, String endDate, String period) {
+        isLoading.setValue(true);
+        errorMessage.setValue(null);
+        
+        Log.d(TAG, "Loading revenue statistics");
+        
+        Call<AdminRevenueResponse> call = apiService.getAdminRevenue(startDate, endDate, period);
+        call.enqueue(new Callback<AdminRevenueResponse>() {
+            @Override
+            public void onResponse(Call<AdminRevenueResponse> call, Response<AdminRevenueResponse> response) {
+                isLoading.setValue(false);
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminRevenueResponse stats = response.body();
+                    Log.d(TAG, "Revenue stats loaded successfully");
+                    revenueStats.setValue(stats);
+                } else {
+                    Log.e(TAG, "Failed to load revenue stats: " + response.code());
+                    errorMessage.setValue("Không thể tải thống kê doanh thu");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminRevenueResponse> call, Throwable t) {
+                isLoading.setValue(false);
+                Log.e(TAG, "Revenue stats network error", t);
+                errorMessage.setValue("Lỗi kết nối khi tải thống kê doanh thu");
+            }
+        });
+    }
+    
+    public void loadOrderStats(String period, String status) {
+        isLoading.setValue(true);
+        errorMessage.setValue(null);
+        
+        Log.d(TAG, "Loading order statistics");
+        
+        Call<AdminOrderStatsResponse> call = apiService.getAdminOrderStats(period, status);
+        call.enqueue(new Callback<AdminOrderStatsResponse>() {
+            @Override
+            public void onResponse(Call<AdminOrderStatsResponse> call, Response<AdminOrderStatsResponse> response) {
+                isLoading.setValue(false);
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminOrderStatsResponse stats = response.body();
+                    Log.d(TAG, "Order stats loaded successfully");
+                    orderStats.setValue(stats);
+                } else {
+                    Log.e(TAG, "Failed to load order stats: " + response.code());
+                    errorMessage.setValue("Không thể tải thống kê đơn hàng");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminOrderStatsResponse> call, Throwable t) {
+                isLoading.setValue(false);
+                Log.e(TAG, "Order stats network error", t);
+                errorMessage.setValue("Lỗi kết nối khi tải thống kê đơn hàng");
+            }
+        });
+    }
+    
+    public void loadUserStats(String period) {
+        isLoading.setValue(true);
+        errorMessage.setValue(null);
+        
+        Log.d(TAG, "Loading user statistics");
+        
+        Call<AdminUserStatsResponse> call = apiService.getAdminUserStats(period);
+        call.enqueue(new Callback<AdminUserStatsResponse>() {
+            @Override
+            public void onResponse(Call<AdminUserStatsResponse> call, Response<AdminUserStatsResponse> response) {
+                isLoading.setValue(false);
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminUserStatsResponse stats = response.body();
+                    Log.d(TAG, "User stats loaded successfully");
+                    userStats.setValue(stats);
+                } else {
+                    Log.e(TAG, "Failed to load user stats: " + response.code());
+                    errorMessage.setValue("Không thể tải thống kê người dùng");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminUserStatsResponse> call, Throwable t) {
+                isLoading.setValue(false);
+                Log.e(TAG, "User stats network error", t);
+                errorMessage.setValue("Lỗi kết nối khi tải thống kê người dùng");
+            }
+        });
+    }
+    
+    public void loadProductStats() {
+        isLoading.setValue(true);
+        errorMessage.setValue(null);
+        
+        Log.d(TAG, "Loading product statistics");
+        
+        Call<AdminProductStatsResponse> call = apiService.getAdminProductStats();
+        call.enqueue(new Callback<AdminProductStatsResponse>() {
+            @Override
+            public void onResponse(Call<AdminProductStatsResponse> call, Response<AdminProductStatsResponse> response) {
+                isLoading.setValue(false);
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminProductStatsResponse stats = response.body();
+                    Log.d(TAG, "Product stats loaded successfully");
+                    productStats.setValue(stats);
+                } else {
+                    Log.e(TAG, "Failed to load product stats: " + response.code());
+                    errorMessage.setValue("Không thể tải thống kê sản phẩm");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminProductStatsResponse> call, Throwable t) {
+                isLoading.setValue(false);
+                Log.e(TAG, "Product stats network error", t);
+                errorMessage.setValue("Lỗi kết nối khi tải thống kê sản phẩm");
+            }
+        });
+    }
+    
+    // Convenience method to load all stats at once
+    public void loadAllStats() {
+        loadDashboardStats();
+        loadRevenueStats(null, null, null);
+        loadOrderStats(null, null);
+        loadUserStats(null);
+        loadProductStats();
+    }
+    
+    // ==================== ORDER MANAGEMENT METHODS ====================
+    
+    public void loadAdminOrders(int page, int size, String status, String search) {
+        isLoading.setValue(true);
+        errorMessage.setValue(null);
+        
+        Log.d(TAG, "Loading admin orders - page: " + page + ", status: " + status);
+        
+        Call<AdminOrdersResponse> call = apiService.getAdminOrders(page, size, status, search);
+        call.enqueue(new Callback<AdminOrdersResponse>() {
+            @Override
+            public void onResponse(Call<AdminOrdersResponse> call, Response<AdminOrdersResponse> response) {
+                isLoading.setValue(false);
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminOrdersResponse orders = response.body();
+                    Log.d(TAG, "Admin orders loaded successfully: " + 
+                        (orders.getData() != null ? orders.getData().getOrders().size() : 0) + " orders");
+                    adminOrders.setValue(orders);
+                } else {
+                    Log.e(TAG, "Failed to load admin orders: " + response.code());
+                    errorMessage.setValue("Không thể tải danh sách đơn hàng");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminOrdersResponse> call, Throwable t) {
+                isLoading.setValue(false);
+                Log.e(TAG, "Admin orders network error", t);
+                errorMessage.setValue("Lỗi kết nối khi tải danh sách đơn hàng");
+            }
+        });
+    }
+    
+    public void updateOrderStatus(String orderId, String newStatus) {
+        isLoading.setValue(true);
+        errorMessage.setValue(null);
+        orderUpdateResult.setValue(false);
+        
+        Log.d(TAG, "Updating order status - ID: " + orderId + ", Status: " + newStatus);
+        
+        OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(newStatus);
+        Call<AdminResponse<Object>> call = apiService.updateOrderStatus(orderId, request);
+        call.enqueue(new Callback<AdminResponse<Object>>() {
+            @Override
+            public void onResponse(Call<AdminResponse<Object>> call, Response<AdminResponse<Object>> response) {
+                isLoading.setValue(false);
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminResponse<Object> result = response.body();
+                    if (result.isSuccess()) {
+                        Log.d(TAG, "Order status updated successfully");
+                        orderUpdateResult.setValue(true);
+                        // Reload orders to reflect changes
+                        loadAdminOrders(1, 10, null, null);
+                    } else {
+                        Log.e(TAG, "Failed to update order status: " + result.getMessage());
+                        errorMessage.setValue(result.getMessage());
+                    }
+                } else {
+                    Log.e(TAG, "Failed to update order status: " + response.code());
+                    errorMessage.setValue("Không thể cập nhật trạng thái đơn hàng");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminResponse<Object>> call, Throwable t) {
+                isLoading.setValue(false);
+                Log.e(TAG, "Update order status network error", t);
+                errorMessage.setValue("Lỗi kết nối khi cập nhật trạng thái");
+            }
+        });
+    }
+    
+    public void loadCustomerDetails(String orderId) {
+        isLoading.setValue(true);
+        errorMessage.setValue(null);
+        
+        Log.d(TAG, "Loading customer details for order: " + orderId);
+        
+        Call<AdminCustomerResponse> call = apiService.getOrderCustomer(orderId);
+        call.enqueue(new Callback<AdminCustomerResponse>() {
+            @Override
+            public void onResponse(Call<AdminCustomerResponse> call, Response<AdminCustomerResponse> response) {
+                isLoading.setValue(false);
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminCustomerResponse customer = response.body();
+                    Log.d(TAG, "Customer details loaded successfully");
+                    customerDetails.setValue(customer);
+                } else {
+                    Log.e(TAG, "Failed to load customer details: " + response.code());
+                    errorMessage.setValue("Không thể tải thông tin khách hàng");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminCustomerResponse> call, Throwable t) {
+                isLoading.setValue(false);
+                Log.e(TAG, "Customer details network error", t);
+                errorMessage.setValue("Lỗi kết nối khi tải thông tin khách hàng");
+            }
+        });
     }
 }

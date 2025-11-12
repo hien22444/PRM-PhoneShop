@@ -1919,6 +1919,586 @@ app.get("/api/admin/products", (req, res) => {
   }
 });
 
+// 📊 Get Total Revenue
+app.get("/api/admin/revenue", (req, res) => {
+  try {
+    const data = loadData();
+    const { startDate, endDate, period } = req.query;
+    
+    let orders = data.orders;
+    
+    // Filter by date range if provided
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      orders = orders.filter(order => {
+        const orderDate = new Date(order.orderDate);
+        return orderDate >= start && orderDate <= end;
+      });
+    }
+    
+    // Calculate revenue statistics
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+    const completedOrders = orders.filter(order => 
+      order.status === "Đã thanh toán" || order.status === "Hoàn thành"
+    );
+    const completedRevenue = completedOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+    
+    // Average order value
+    const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+    
+    // Revenue by payment method
+    const revenueByPayment = {
+      cod: orders.filter(o => o.paymentMethod === "COD").reduce((sum, o) => sum + (o.totalPrice || 0), 0),
+      banking: orders.filter(o => o.paymentMethod === "Chuyển khoản").reduce((sum, o) => sum + (o.totalPrice || 0), 0),
+      ewallet: orders.filter(o => o.paymentMethod === "Ví điện tử").reduce((sum, o) => sum + (o.totalPrice || 0), 0)
+    };
+    
+    // Monthly revenue (last 12 months)
+    const monthlyRevenue = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      
+      const monthOrders = orders.filter(order => {
+        const orderDate = new Date(order.orderDate);
+        return orderDate.getMonth() + 1 === month && orderDate.getFullYear() === year;
+      });
+      
+      monthlyRevenue.push({
+        month: `${month}/${year}`,
+        revenue: monthOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0),
+        orderCount: monthOrders.length
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        totalRevenue,
+        completedRevenue,
+        averageOrderValue,
+        revenueByPayment,
+        monthlyRevenue,
+        totalOrders: orders.length,
+        completedOrders: completedOrders.length
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get revenue data",
+      error: error.message
+    });
+  }
+});
+
+// 📦 Get Order Statistics
+app.get("/api/admin/orders/stats", (req, res) => {
+  try {
+    const data = loadData();
+    const { period, status } = req.query;
+    
+    let orders = data.orders;
+    
+    // Filter by period if provided
+    if (period) {
+      const now = new Date();
+      let startDate;
+      
+      switch (period) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+      
+      if (startDate) {
+        orders = orders.filter(order => new Date(order.orderDate) >= startDate);
+      }
+    }
+    
+    // Order status breakdown
+    const statusBreakdown = {
+      processing: orders.filter(o => o.status === "Đang xử lý").length,
+      confirmed: orders.filter(o => o.status === "Đã xác nhận").length,
+      shipping: orders.filter(o => o.status === "Đang giao").length,
+      completed: orders.filter(o => o.status === "Đã thanh toán" || o.status === "Hoàn thành").length,
+      cancelled: orders.filter(o => o.status === "Đã hủy").length
+    };
+    
+    // Payment method breakdown
+    const paymentBreakdown = {
+      cod: orders.filter(o => o.paymentMethod === "COD").length,
+      banking: orders.filter(o => o.paymentMethod === "Chuyển khoản").length,
+      ewallet: orders.filter(o => o.paymentMethod === "Ví điện tử").length
+    };
+    
+    // Daily orders (last 30 days)
+    const dailyOrders = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayOrders = orders.filter(order => {
+        const orderDate = new Date(order.orderDate).toISOString().split('T')[0];
+        return orderDate === dateStr;
+      });
+      
+      dailyOrders.push({
+        date: dateStr,
+        count: dayOrders.length,
+        revenue: dayOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0)
+      });
+    }
+    
+    // Top customers by order count
+    const customerStats = {};
+    orders.forEach(order => {
+      if (order.customerName) {
+        if (!customerStats[order.customerName]) {
+          customerStats[order.customerName] = {
+            name: order.customerName,
+            orderCount: 0,
+            totalSpent: 0
+          };
+        }
+        customerStats[order.customerName].orderCount++;
+        customerStats[order.customerName].totalSpent += order.totalPrice || 0;
+      }
+    });
+    
+    const topCustomers = Object.values(customerStats)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
+    
+    res.json({
+      success: true,
+      data: {
+        totalOrders: orders.length,
+        statusBreakdown,
+        paymentBreakdown,
+        dailyOrders,
+        topCustomers,
+        averageOrderValue: orders.length > 0 ? 
+          orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0) / orders.length : 0
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get order statistics",
+      error: error.message
+    });
+  }
+});
+
+// 👥 Get User Statistics
+app.get("/api/admin/users/stats", (req, res) => {
+  try {
+    const data = loadData();
+    const { period } = req.query;
+    
+    let users = data.users;
+    
+    // Filter by registration period if provided
+    if (period) {
+      const now = new Date();
+      let startDate;
+      
+      switch (period) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+      
+      if (startDate) {
+        users = users.filter(user => {
+          const regDate = user.registrationDate ? new Date(user.registrationDate) : new Date();
+          return regDate >= startDate;
+        });
+      }
+    }
+    
+    // User registration over time (last 12 months)
+    const monthlyRegistrations = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      
+      const monthUsers = data.users.filter(user => {
+        if (!user.registrationDate) return false;
+        const regDate = new Date(user.registrationDate);
+        return regDate.getMonth() + 1 === month && regDate.getFullYear() === year;
+      });
+      
+      monthlyRegistrations.push({
+        month: `${month}/${year}`,
+        count: monthUsers.length
+      });
+    }
+    
+    // User activity analysis
+    const orders = data.orders;
+    const activeUsers = new Set(orders.map(order => order.userId || order.customerName)).size;
+    
+    // Users with orders vs without orders
+    const usersWithOrders = new Set(orders.map(order => order.userId || order.customerName));
+    const usersWithoutOrders = data.users.filter(user => 
+      !usersWithOrders.has(user.id) && !usersWithOrders.has(user.username)
+    ).length;
+    
+    // Top users by spending
+    const userSpending = {};
+    orders.forEach(order => {
+      const userId = order.userId || order.customerName;
+      if (userId) {
+        if (!userSpending[userId]) {
+          userSpending[userId] = {
+            userId,
+            totalSpent: 0,
+            orderCount: 0
+          };
+        }
+        userSpending[userId].totalSpent += order.totalPrice || 0;
+        userSpending[userId].orderCount++;
+      }
+    });
+    
+    const topSpenders = Object.values(userSpending)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
+    
+    res.json({
+      success: true,
+      data: {
+        totalUsers: data.users.length,
+        newUsers: users.length,
+        activeUsers,
+        usersWithOrders: usersWithOrders.size,
+        usersWithoutOrders,
+        monthlyRegistrations,
+        topSpenders,
+        userGrowthRate: data.users.length > 0 ? (users.length / data.users.length) * 100 : 0
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get user statistics",
+      error: error.message
+    });
+  }
+});
+
+// 📈 Get Product Statistics
+app.get("/api/admin/products/stats", (req, res) => {
+  try {
+    const data = loadData();
+    
+    // Basic product stats
+    const totalProducts = data.products.length;
+    const activeProducts = data.products.filter(p => p.visible !== false).length;
+    const inactiveProducts = totalProducts - activeProducts;
+    
+    // Products by brand
+    const brandStats = {};
+    data.products.forEach(product => {
+      const brand = product.brand || 'Unknown';
+      if (!brandStats[brand]) {
+        brandStats[brand] = 0;
+      }
+      brandStats[brand]++;
+    });
+    
+    // Products by price range
+    const priceRanges = {
+      under5M: data.products.filter(p => p.price < 5000000).length,
+      from5to10M: data.products.filter(p => p.price >= 5000000 && p.price < 10000000).length,
+      from10to20M: data.products.filter(p => p.price >= 10000000 && p.price < 20000000).length,
+      over20M: data.products.filter(p => p.price >= 20000000).length
+    };
+    
+    // Calculate sales data from orders
+    const orders = data.orders;
+    const productSales = {};
+    
+    orders.forEach(order => {
+      if (order.items) {
+        order.items.forEach(item => {
+          const productId = item.productId || item.id;
+          if (!productSales[productId]) {
+            productSales[productId] = {
+              productId,
+              productName: item.name || item.productName,
+              totalSold: 0,
+              totalRevenue: 0
+            };
+          }
+          productSales[productId].totalSold += item.quantity || 1;
+          productSales[productId].totalRevenue += (item.price || 0) * (item.quantity || 1);
+        });
+      }
+    });
+    
+    // Top selling products
+    const topSellingProducts = Object.values(productSales)
+      .sort((a, b) => b.totalSold - a.totalSold)
+      .slice(0, 10);
+    
+    // Top revenue products
+    const topRevenueProducts = Object.values(productSales)
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, 10);
+    
+    // Low stock products (assuming stock field exists)
+    const lowStockProducts = data.products.filter(p => 
+      p.stock !== undefined && p.stock < 10
+    ).map(p => ({
+      id: p.id,
+      name: p.name,
+      stock: p.stock,
+      brand: p.brand
+    }));
+    
+    res.json({
+      success: true,
+      data: {
+        totalProducts,
+        activeProducts,
+        inactiveProducts,
+        brandStats,
+        priceRanges,
+        topSellingProducts,
+        topRevenueProducts,
+        lowStockProducts,
+        averagePrice: data.products.length > 0 ? 
+          data.products.reduce((sum, p) => sum + (p.price || 0), 0) / data.products.length : 0
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get product statistics",
+      error: error.message
+    });
+  }
+});
+
+// 📋 Get All Orders for Admin with full details
+app.get("/api/admin/orders", (req, res) => {
+  try {
+    const data = loadData();
+    const { page = 1, size = 10, status, search } = req.query;
+    
+    let orders = data.orders || [];
+    
+    // Filter by status if provided
+    if (status && status !== 'all') {
+      orders = orders.filter(order => order.status === status);
+    }
+    
+    // Search by customer name or order ID
+    if (search) {
+      const searchLower = search.toLowerCase();
+      orders = orders.filter(order => 
+        (order.customerName && order.customerName.toLowerCase().includes(searchLower)) ||
+        (order.id && order.id.toLowerCase().includes(searchLower)) ||
+        (order.customerPhone && order.customerPhone.includes(search))
+      );
+    }
+    
+    // Sort by date (newest first)
+    orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+    
+    // Pagination
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + parseInt(size);
+    const paginatedOrders = orders.slice(startIndex, endIndex);
+    
+    // Enrich orders with additional info
+    const enrichedOrders = paginatedOrders.map(order => ({
+      ...order,
+      itemCount: order.items ? order.items.length : 0,
+      formattedDate: new Date(order.orderDate).toLocaleDateString('vi-VN'),
+      formattedPrice: new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(order.totalPrice || 0)
+    }));
+    
+    res.json({
+      success: true,
+      data: {
+        orders: enrichedOrders,
+        pagination: {
+          currentPage: parseInt(page),
+          pageSize: parseInt(size),
+          totalItems: orders.length,
+          totalPages: Math.ceil(orders.length / size)
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get orders",
+      error: error.message
+    });
+  }
+});
+
+// 🔄 Update Order Status
+app.put("/api/admin/orders/:orderId/status", (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required"
+      });
+    }
+    
+    const data = loadData();
+    const orderIndex = data.orders.findIndex(order => order.id === orderId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+    
+    // Update order status
+    const oldStatus = data.orders[orderIndex].status;
+    data.orders[orderIndex].status = status;
+    data.orders[orderIndex].updatedAt = new Date().toISOString();
+    
+    // Save data
+    saveData(data);
+    
+    res.json({
+      success: true,
+      message: `Order status updated from "${oldStatus}" to "${status}"`,
+      data: {
+        orderId,
+        oldStatus,
+        newStatus: status,
+        updatedAt: data.orders[orderIndex].updatedAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update order status",
+      error: error.message
+    });
+  }
+});
+
+// 👤 Get Customer Details by Order
+app.get("/api/admin/orders/:orderId/customer", (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const data = loadData();
+    
+    const order = data.orders.find(order => order.id === orderId);
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+    
+    // Find user by userId or customerName
+    let customer = null;
+    if (order.userId) {
+      customer = data.users.find(user => user.id === order.userId);
+    }
+    
+    // If no user found, create customer info from order
+    if (!customer) {
+      customer = {
+        id: order.userId || 'guest',
+        name: order.customerName || 'Khách vãng lai',
+        phone: order.customerPhone || 'Không có',
+        email: order.customerEmail || 'Không có',
+        address: order.shippingAddress || 'Không có',
+        isGuest: !order.userId
+      };
+    }
+    
+    // Get order history for this customer
+    const customerOrders = data.orders.filter(o => 
+      (o.userId && o.userId === customer.id) || 
+      (o.customerPhone && o.customerPhone === customer.phone)
+    );
+    
+    const totalSpent = customerOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+    
+    res.json({
+      success: true,
+      data: {
+        customer: {
+          ...customer,
+          totalOrders: customerOrders.length,
+          totalSpent,
+          formattedTotalSpent: new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+          }).format(totalSpent),
+          registrationDate: customer.registrationDate || 'Không có',
+          lastOrderDate: customerOrders.length > 0 ? 
+            Math.max(...customerOrders.map(o => new Date(o.orderDate).getTime())) : null
+        },
+        currentOrder: {
+          id: order.id,
+          status: order.status,
+          totalPrice: order.totalPrice,
+          orderDate: order.orderDate,
+          items: order.items
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get customer details",
+      error: error.message
+    });
+  }
+});
+
 /* =============== 🚀 SERVER START ==================== */
 const PORT = 8080;
 app.listen(PORT, "0.0.0.0", () => {
@@ -1930,4 +2510,10 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`   - Carts: ${db.carts.length}`);
   console.log(`   - Orders: ${db.orders.length}`);
   console.log(`🔗 Status endpoint: http://localhost:${PORT}/api/status`);
+  console.log(`📊 Admin Dashboard APIs:`);
+  console.log(`   - Dashboard: http://localhost:${PORT}/api/admin/dashboard`);
+  console.log(`   - Revenue: http://localhost:${PORT}/api/admin/revenue`);
+  console.log(`   - Orders Stats: http://localhost:${PORT}/api/admin/orders/stats`);
+  console.log(`   - Users Stats: http://localhost:${PORT}/api/admin/users/stats`);
+  console.log(`   - Products Stats: http://localhost:${PORT}/api/admin/products/stats`);
 });

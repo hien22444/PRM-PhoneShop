@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.phoneshop.R;
 import com.example.phoneshop.features.feature_admin.model.AdminStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminOrdersResponse;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -22,19 +23,27 @@ import java.util.Locale;
  */
 public class RecentOrdersAdapter extends RecyclerView.Adapter<RecentOrdersAdapter.RecentOrderViewHolder> {
 
-    private List<AdminStatsResponse.RecentOrder> recentOrders;
-    private OnRecentOrderClickListener listener;
+    private List<AdminOrdersResponse.EnrichedOrder> recentOrders;
+    private OnOrderStatusUpdateListener statusUpdateListener;
+    private OnCustomerClickListener customerClickListener;
     private NumberFormat currencyFormat;
     private SimpleDateFormat dateFormat;
 
-    public interface OnRecentOrderClickListener {
-        void onRecentOrderClick(AdminStatsResponse.RecentOrder order);
+    public interface OnOrderStatusUpdateListener {
+        void onOrderStatusUpdate(String orderId, String currentStatus);
+    }
+    
+    public interface OnCustomerClickListener {
+        void onCustomerClick(String orderId);
     }
 
-    public RecentOrdersAdapter(List<AdminStatsResponse.RecentOrder> recentOrders, OnRecentOrderClickListener listener) {
+    public RecentOrdersAdapter(List<AdminOrdersResponse.EnrichedOrder> recentOrders, 
+                              OnOrderStatusUpdateListener statusUpdateListener,
+                              OnCustomerClickListener customerClickListener) {
         this.recentOrders = recentOrders;
-        this.listener = listener;
-        this.currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+        this.statusUpdateListener = statusUpdateListener;
+        this.customerClickListener = customerClickListener;
+        this.currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("vi-VN"));
         this.dateFormat = new SimpleDateFormat("dd/MM HH:mm", Locale.getDefault());
     }
 
@@ -48,7 +57,7 @@ public class RecentOrdersAdapter extends RecyclerView.Adapter<RecentOrdersAdapte
 
     @Override
     public void onBindViewHolder(@NonNull RecentOrderViewHolder holder, int position) {
-        AdminStatsResponse.RecentOrder order = recentOrders.get(position);
+        AdminOrdersResponse.EnrichedOrder order = recentOrders.get(position);
         holder.bind(order);
     }
 
@@ -57,7 +66,7 @@ public class RecentOrdersAdapter extends RecyclerView.Adapter<RecentOrdersAdapte
         return recentOrders != null ? recentOrders.size() : 0;
     }
 
-    public void updateOrders(List<AdminStatsResponse.RecentOrder> newOrders) {
+    public void updateOrders(List<AdminOrdersResponse.EnrichedOrder> newOrders) {
         this.recentOrders = newOrders;
         notifyDataSetChanged();
     }
@@ -74,55 +83,71 @@ public class RecentOrdersAdapter extends RecyclerView.Adapter<RecentOrdersAdapte
             super(itemView);
             tvOrderId = itemView.findViewById(R.id.tvOrderId);
             tvCustomerName = itemView.findViewById(R.id.tvCustomerName);
-            tvTotalAmount = itemView.findViewById(R.id.tvTotalAmount);
-            tvStatus = itemView.findViewById(R.id.tvStatus);
-            tvCreatedAt = itemView.findViewById(R.id.tvCreatedAt);
-            tvItemCount = itemView.findViewById(R.id.tvItemCount);
+            tvTotalAmount = itemView.findViewById(R.id.tvOrderTotal);
+            tvStatus = itemView.findViewById(R.id.tvOrderStatus);
+            tvCreatedAt = itemView.findViewById(R.id.tvOrderDate);
 
-            itemView.setOnClickListener(v -> {
-                if (listener != null && getAdapterPosition() != RecyclerView.NO_POSITION) {
-                    listener.onRecentOrderClick(recentOrders.get(getAdapterPosition()));
+            // Set click listeners for different actions
+            itemView.findViewById(R.id.tvOrderStatus).setOnClickListener(v -> {
+                if (statusUpdateListener != null && getAdapterPosition() != RecyclerView.NO_POSITION) {
+                    AdminOrdersResponse.EnrichedOrder order = recentOrders.get(getAdapterPosition());
+                    statusUpdateListener.onOrderStatusUpdate(order.getId(), order.getStatus());
+                }
+            });
+            
+            itemView.findViewById(R.id.tvCustomerName).setOnClickListener(v -> {
+                if (customerClickListener != null && getAdapterPosition() != RecyclerView.NO_POSITION) {
+                    AdminOrdersResponse.EnrichedOrder order = recentOrders.get(getAdapterPosition());
+                    customerClickListener.onCustomerClick(order.getId());
                 }
             });
         }
 
-        public void bind(AdminStatsResponse.RecentOrder order) {
+        public void bind(AdminOrdersResponse.EnrichedOrder order) {
             tvOrderId.setText("#" + order.getId());
-            tvCustomerName.setText(order.getCustomerName());
+            tvCustomerName.setText(order.getCustomerName() != null ? order.getCustomerName() : "Khách vãng lai");
             
-            // Format currency
-            String formattedAmount = formatCurrency(order.getTotalAmount());
-            tvTotalAmount.setText(formattedAmount);
-            
-            tvStatus.setText(order.getStatus());
-            
-            // Format date
-            try {
-                String formattedDate = formatDate(order.getCreatedAt());
-                tvCreatedAt.setText(formattedDate);
-            } catch (Exception e) {
-                tvCreatedAt.setText(order.getCreatedAt());
+            // Use formatted price from server if available
+            if (order.getFormattedPrice() != null) {
+                tvTotalAmount.setText(order.getFormattedPrice());
+            } else {
+                String formattedAmount = formatCurrency(order.getTotalPrice());
+                tvTotalAmount.setText(formattedAmount);
             }
             
-            tvItemCount.setText(order.getItemCount() + " sản phẩm");
+            tvStatus.setText(order.getStatus() != null ? order.getStatus() : "Đang xử lý");
+            
+            // Use formatted date from server if available
+            if (order.getFormattedDate() != null) {
+                tvCreatedAt.setText(order.getFormattedDate());
+            } else {
+                try {
+                    String formattedDate = formatDate(order.getOrderDate());
+                    tvCreatedAt.setText(formattedDate);
+                } catch (Exception e) {
+                    tvCreatedAt.setText(order.getOrderDate());
+                }
+            }
             
             // Set status color
             setStatusColor(order.getStatus());
         }
 
-        private String formatCurrency(long amount) {
+        private String formatCurrency(double amount) {
             try {
                 return currencyFormat.format(amount).replace("₫", "VND");
             } catch (Exception e) {
-                return String.format("%,d VND", amount);
+                return String.format("%,.0f VND", amount);
             }
         }
 
         private String formatDate(String dateString) {
             try {
-                // Assuming ISO format from server
-                Date date = new Date(dateString);
-                return dateFormat.format(date);
+                // Simple date formatting - just return the date part
+                if (dateString != null && dateString.length() >= 10) {
+                    return dateString.substring(0, 10);
+                }
+                return dateString;
             } catch (Exception e) {
                 // If parsing fails, return original string
                 return dateString;

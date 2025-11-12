@@ -9,6 +9,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -18,12 +19,15 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.phoneshop.R;
 import com.example.phoneshop.features.feature_admin.adapter.RecentOrdersAdapter;
 import com.example.phoneshop.features.feature_admin.model.AdminStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminOrdersResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminCustomerResponse;
 import com.example.phoneshop.features.feature_admin.viewmodel.AdminViewModel;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -110,20 +114,34 @@ public class AdminDashboardFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        recentOrdersAdapter = new RecentOrdersAdapter(new ArrayList<>(), this::onRecentOrderClick);
+        recentOrdersAdapter = new RecentOrdersAdapter(
+            new ArrayList<>(), 
+            this::onOrderStatusUpdate,
+            this::onCustomerClick
+        );
         rvRecentOrders.setLayoutManager(new LinearLayoutManager(getContext()));
         rvRecentOrders.setAdapter(recentOrdersAdapter);
     }
 
     private void setupListeners() {
         // Swipe to refresh
-        swipeRefreshLayout.setOnRefreshListener(this::loadDashboardData);
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setOnRefreshListener(() -> loadDashboardData());
+        }
         
         // Card click listeners for navigation
-        cardUsers.setOnClickListener(v -> navigateToUserManagement());
-        cardOrders.setOnClickListener(v -> navigateToOrderManagement());
-        cardProducts.setOnClickListener(v -> navigateToProductManagement());
-        cardRevenue.setOnClickListener(v -> navigateToStatistics());
+        if (cardUsers != null) {
+            cardUsers.setOnClickListener(v -> navigateToUserManagement());
+        }
+        if (cardOrders != null) {
+            cardOrders.setOnClickListener(v -> navigateToOrderManagement());
+        }
+        if (cardProducts != null) {
+            cardProducts.setOnClickListener(v -> navigateToProductManagement());
+        }
+        if (cardRevenue != null) {
+            cardRevenue.setOnClickListener(v -> navigateToStatistics());
+        }
     }
 
     private void observeViewModel() {
@@ -145,11 +163,35 @@ public class AdminDashboardFragment extends Fragment {
                 Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
             }
         });
+        
+        // Observe admin orders
+        adminViewModel.getAdminOrders().observe(getViewLifecycleOwner(), ordersResponse -> {
+            if (ordersResponse != null && ordersResponse.isSuccess()) {
+                updateRecentOrders(ordersResponse);
+            }
+        });
+        
+        // Observe customer details
+        adminViewModel.getCustomerDetails().observe(getViewLifecycleOwner(), customerResponse -> {
+            if (customerResponse != null && customerResponse.isSuccess()) {
+                showCustomerDetailsDialog(customerResponse);
+            }
+        });
+        
+        // Observe order update result
+        adminViewModel.getOrderUpdateResult().observe(getViewLifecycleOwner(), success -> {
+            if (success != null && success) {
+                Toast.makeText(getContext(), "Cập nhật trạng thái đơn hàng thành công", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadDashboardData() {
         if (adminViewModel != null) {
-            adminViewModel.loadDashboardStats();
+            // Load all statistics
+            adminViewModel.loadAllStats();
+            // Load recent orders for dashboard
+            adminViewModel.loadAdminOrders(1, 5, null, null);
         }
         
         // Update welcome message with current time
@@ -169,9 +211,10 @@ public class AdminDashboardFragment extends Fragment {
     }
 
     private void updateLoadingState(boolean isLoading) {
-        if (swipeRefreshLayout.isRefreshing()) {
+        if (swipeRefreshLayout != null) {
             swipeRefreshLayout.setRefreshing(isLoading);
-        } else {
+        }
+        if (progressIndicator != null) {
             progressIndicator.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         }
     }
@@ -183,52 +226,50 @@ public class AdminDashboardFragment extends Fragment {
         // Update overview statistics
         AdminStatsResponse.Overview overview = data.getOverview();
         if (overview != null) {
-            tvTotalUsers.setText(String.valueOf(overview.getTotalUsers()));
-            tvTotalOrders.setText(String.valueOf(overview.getTotalOrders()));
-            tvTotalProducts.setText(String.valueOf(overview.getTotalProducts()));
+            if (tvTotalUsers != null) {
+                tvTotalUsers.setText(String.valueOf(overview.getTotalUsers()));
+            }
+            if (tvTotalOrders != null) {
+                tvTotalOrders.setText(String.valueOf(overview.getTotalOrders()));
+            }
+            if (tvTotalProducts != null) {
+                tvTotalProducts.setText(String.valueOf(overview.getTotalProducts()));
+            }
             
             // Format revenue
-            String revenueText = formatCurrency(overview.getTotalRevenue());
-            tvTotalRevenue.setText(revenueText);
+            if (tvTotalRevenue != null) {
+                String revenueText = formatCurrency(overview.getTotalRevenue());
+                tvTotalRevenue.setText(revenueText);
+            }
             
-            // Average order value
-            String avgOrderValue = formatCurrency(overview.getAverageOrderValue());
-            tvAverageOrderValue.setText("Giá trị TB: " + avgOrderValue);
+            // Average order value (commented out if not in layout)
+            // String avgOrderValue = formatCurrency(overview.getAverageOrderValue());
+            // tvAverageOrderValue.setText("Giá trị TB: " + avgOrderValue);
         }
         
         // Update order status statistics
         AdminStatsResponse.OrdersByStatus ordersByStatus = data.getOrdersByStatus();
         if (ordersByStatus != null) {
-            tvProcessingOrders.setText(String.valueOf(ordersByStatus.getProcessing()));
-            tvCompletedOrders.setText(String.valueOf(ordersByStatus.getCompleted()));
+            if (tvProcessingOrders != null) {
+                tvProcessingOrders.setText(String.valueOf(ordersByStatus.getProcessing()));
+            }
+            if (tvCompletedOrders != null) {
+                tvCompletedOrders.setText(String.valueOf(ordersByStatus.getCompleted()));
+            }
         }
         
-        // Update recent orders
-        if (data.getRecentOrders() != null && !data.getRecentOrders().isEmpty()) {
-            recentOrdersAdapter.updateOrders(data.getRecentOrders());
-            rvRecentOrders.setVisibility(View.VISIBLE);
-            tvNoRecentOrders.setVisibility(View.GONE);
-        } else {
-            rvRecentOrders.setVisibility(View.GONE);
-            tvNoRecentOrders.setVisibility(View.VISIBLE);
-        }
+        // Note: Recent orders will be updated separately via AdminOrdersResponse
+        // This dashboard stats only shows overview numbers
     }
 
-    private String formatCurrency(long amount) {
+    private String formatCurrency(double amount) {
         try {
             return currencyFormat.format(amount).replace("₫", "VND");
         } catch (Exception e) {
-            return String.format("%,d VND", amount);
+            return String.format("%,.0f VND", amount);
         }
     }
 
-    private void onRecentOrderClick(AdminStatsResponse.RecentOrder order) {
-        // Navigate to order detail
-        if (getActivity() instanceof AdminActivity) {
-            // You can implement navigation to order detail here
-            Toast.makeText(getContext(), "Xem chi tiết đơn hàng: " + order.getId(), Toast.LENGTH_SHORT).show();
-        }
-    }
 
     private void navigateToUserManagement() {
         if (getActivity() instanceof AdminActivity) {
@@ -268,23 +309,110 @@ public class AdminDashboardFragment extends Fragment {
         // Refresh data when fragment becomes visible
         loadDashboardData();
     }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        // Clear references to prevent memory leaks
-        swipeRefreshLayout = null;
-        progressIndicator = null;
-        cardUsers = null;
-        cardOrders = null;
-        cardRevenue = null;
-        cardProducts = null;
-        tvTotalUsers = null;
-        tvTotalOrders = null;
-        tvTotalRevenue = null;
-        tvTotalProducts = null;
-        rvRecentOrders = null;
-        tvNoRecentOrders = null;
-        recentOrdersAdapter = null;
+    
+    // ==================== ORDER MANAGEMENT METHODS ====================
+    
+    private void updateRecentOrders(AdminOrdersResponse ordersResponse) {
+        if (ordersResponse.getData() != null && ordersResponse.getData().getOrders() != null) {
+            List<AdminOrdersResponse.EnrichedOrder> orders = 
+                ordersResponse.getData().getOrders();
+            
+            if (orders.isEmpty()) {
+                if (rvRecentOrders != null) {
+                    rvRecentOrders.setVisibility(View.GONE);
+                }
+                if (tvNoRecentOrders != null) {
+                    tvNoRecentOrders.setVisibility(View.VISIBLE);
+                }
+            } else {
+                if (rvRecentOrders != null) {
+                    rvRecentOrders.setVisibility(View.VISIBLE);
+                }
+                if (tvNoRecentOrders != null) {
+                    tvNoRecentOrders.setVisibility(View.GONE);
+                }
+                
+                // Setup adapter if not already done
+                if (recentOrdersAdapter == null && rvRecentOrders != null) {
+                    recentOrdersAdapter = new RecentOrdersAdapter(
+                        orders,
+                        this::onOrderStatusUpdate,
+                        this::onCustomerClick
+                    );
+                    rvRecentOrders.setAdapter(recentOrdersAdapter);
+                    rvRecentOrders.setLayoutManager(new LinearLayoutManager(getContext()));
+                } else if (recentOrdersAdapter != null) {
+                    recentOrdersAdapter.updateOrders(orders);
+                }
+            }
+        }
+    }
+    
+    private void onOrderStatusUpdate(String orderId, String currentStatus) {
+        // Show status selection dialog
+        String[] statusOptions = {
+            "Đang xử lý",
+            "Đã xác nhận", 
+            "Đang giao",
+            "Đã thanh toán",
+            "Hoàn thành",
+            "Đã hủy"
+        };
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Cập nhật trạng thái đơn hàng")
+               .setItems(statusOptions, (dialog, which) -> {
+                   String newStatus = statusOptions[which];
+                   if (!newStatus.equals(currentStatus)) {
+                       adminViewModel.updateOrderStatus(orderId, newStatus);
+                   }
+               })
+               .setNegativeButton("Hủy", null)
+               .show();
+    }
+    
+    private void onCustomerClick(String orderId) {
+        // Load customer details
+        adminViewModel.loadCustomerDetails(orderId);
+    }
+    
+    private void showCustomerDetailsDialog(AdminCustomerResponse customerResponse) {
+        if (customerResponse.getData() == null || customerResponse.getData().getCustomer() == null) {
+            Toast.makeText(getContext(), "Không thể tải thông tin khách hàng", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        AdminCustomerResponse.CustomerInfo customer = 
+            customerResponse.getData().getCustomer();
+        
+        // Create dialog content
+        StringBuilder content = new StringBuilder();
+        content.append("Họ tên: ").append(customer.getName()).append("\n");
+        content.append("Số điện thoại: ").append(customer.getPhone()).append("\n");
+        content.append("Email: ").append(customer.getEmail()).append("\n");
+        content.append("Địa chỉ: ").append(customer.getAddress()).append("\n\n");
+        content.append("Thông tin đơn hàng:\n");
+        content.append("Tổng đơn hàng: ").append(customer.getTotalOrders()).append("\n");
+        content.append("Tổng chi tiêu: ").append(customer.getFormattedTotalSpent()).append("\n");
+        content.append("Ngày đăng ký: ").append(customer.getRegistrationDate()).append("\n");
+        
+        if (customer.isGuest()) {
+            content.append("\n(Khách vãng lai)");
+        }
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Thông tin khách hàng")
+               .setMessage(content.toString())
+               .setPositiveButton("Đóng", null);
+        
+        // Add "View All Orders" button if customer has multiple orders
+        if (customer.getTotalOrders() > 1) {
+            builder.setNeutralButton("Xem tất cả đơn hàng", (dialog, which) -> {
+                // Navigate to customer orders view
+                Toast.makeText(getContext(), "Chức năng xem tất cả đơn hàng đang phát triển", Toast.LENGTH_SHORT).show();
+            });
+        }
+        
+        builder.show();
     }
 }

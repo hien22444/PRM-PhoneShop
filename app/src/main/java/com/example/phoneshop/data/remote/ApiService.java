@@ -14,6 +14,13 @@ import com.example.phoneshop.data.model.User;
 import com.example.phoneshop.features.feature_admin.model.AdminLoginResponse;
 import com.example.phoneshop.features.feature_admin.model.AdminResponse;
 import com.example.phoneshop.features.feature_admin.model.AdminStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminRevenueResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminOrderStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminUserStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminProductStatsResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminOrdersResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminCustomerResponse;
+import com.example.phoneshop.features.feature_admin.model.OrderStatusUpdateRequest;
 import com.example.phoneshop.features.feature_admin.viewmodel.AdminViewModel;
 
 import retrofit2.Call;
@@ -176,6 +183,28 @@ public interface ApiService {
         // Admin Dashboard
         @GET("admin/dashboard")
         Call<AdminStatsResponse> getAdminDashboardStats();
+        
+        // Admin Revenue Statistics
+        @GET("admin/revenue")
+        Call<AdminRevenueResponse> getAdminRevenue(
+                @Query("startDate") String startDate,
+                @Query("endDate") String endDate,
+                @Query("period") String period);
+        
+        // Admin Order Statistics
+        @GET("admin/orders/stats")
+        Call<AdminOrderStatsResponse> getAdminOrderStats(
+                @Query("period") String period,
+                @Query("status") String status);
+        
+        // Admin User Statistics
+        @GET("admin/users/stats")
+        Call<AdminUserStatsResponse> getAdminUserStats(
+                @Query("period") String period);
+        
+        // Admin Product Statistics
+        @GET("admin/products/stats")
+        Call<AdminProductStatsResponse> getAdminProductStats();
 
         // Admin User Management
         @GET("admin/users")
@@ -192,19 +221,23 @@ public interface ApiService {
         
         // Admin Order Management
         @GET("admin/orders")
-        Call<AdminResponse<Order>> getAdminOrders(
+        Call<AdminOrdersResponse> getAdminOrders(
                 @Query("page") int page,
                 @Query("size") int size,
                 @Query("status") String status,
-                @Query("q") String query);
+                @Query("search") String search);
         
         @GET("admin/orders/{id}")
         Call<AdminResponse<Order>> getAdminOrderDetail(@Path("id") String orderId);
         
-        @PUT("admin/orders/{id}/status")
-        Call<AdminResponse> updateAdminOrderStatus(
-                @Path("id") String orderId,
-                @Body AdminViewModel.OrderStatusRequest request);
+        @PUT("admin/orders/{orderId}/status")
+        Call<AdminResponse<Object>> updateOrderStatus(
+                @Path("orderId") String orderId,
+                @Body OrderStatusUpdateRequest request);
+        
+        @GET("admin/orders/{orderId}/customer")
+        Call<AdminCustomerResponse> getOrderCustomer(
+                @Path("orderId") String orderId);
         
         // Admin Product Management
         @GET("admin/products")
