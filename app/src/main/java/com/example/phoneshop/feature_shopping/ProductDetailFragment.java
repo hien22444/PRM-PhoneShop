@@ -1,13 +1,9 @@
 package com.example.phoneshop.feature_shopping;
 
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.WebView;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,21 +13,18 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.phoneshop.R;
 import com.example.phoneshop.data.model.Product;
 import com.example.phoneshop.data.repository.FavoriteRepository;
-import com.example.phoneshop.data.repository.ProductRepository;
 import com.example.phoneshop.feature_shopping.adapters.ImagePagerAdapter;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.card.MaterialCardView;
 
 import java.text.NumberFormat;
 import java.util.Locale;
 import android.widget.ImageView;
 import com.bumptech.glide.Glide;
+import com.example.phoneshop.data.repository.ProductRepository;
 
 public class ProductDetailFragment extends Fragment {
 

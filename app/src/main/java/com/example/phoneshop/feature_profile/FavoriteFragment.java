@@ -19,7 +19,6 @@ import com.example.phoneshop.R;
 import com.example.phoneshop.data.model.Favorite;
 import com.example.phoneshop.data.model.Product;
 import com.example.phoneshop.data.repository.FavoriteRepository;
-import com.example.phoneshop.data.repository.ProductRepository;
 import com.example.phoneshop.feature_shopping.adapters.ProductAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
 import android.widget.Toast;
@@ -28,6 +27,7 @@ import android.content.SharedPreferences;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.example.phoneshop.data.repository.ProductRepository;
 
 public class FavoriteFragment extends Fragment implements ProductAdapter.OnProductClickListener {
 

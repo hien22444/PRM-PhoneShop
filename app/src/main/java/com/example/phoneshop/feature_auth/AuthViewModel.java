@@ -21,14 +21,14 @@ public class AuthViewModel extends ViewModel {
     private final MutableLiveData<AuthResult> loginResult = new MutableLiveData<>();
     private final MutableLiveData<AuthResult> registerResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
-    
+
     private Context applicationContext;
 
     public AuthViewModel() {
         apiService = RetrofitClient.getInstance().getApiService();
         isLoading.setValue(false);
     }
-    
+
     public void setApplicationContext(Context context) {
         this.applicationContext = context.getApplicationContext();
     }
@@ -52,24 +52,24 @@ public class AuthViewModel extends ViewModel {
         new Thread(() -> {
             try {
                 Thread.sleep(500); // Simulate network delay
-                
+
                 if (applicationContext == null) {
                     AuthResult result = new AuthResult(false, null, null, "Lỗi hệ thống. Vui lòng thử lại.");
                     loginResult.postValue(result);
                     isLoading.postValue(false);
                     return;
                 }
-                
+
                 UserManager userManager = UserManager.getInstance(applicationContext);
                 UserManager.UserData user = userManager.loginUser(username, password);
-                
+
                 if (user != null) {
                     // Đăng nhập thành công
                     AuthResult result = new AuthResult(
-                        true, 
-                        user.getUserId(), 
-                        user.getUsername(),
-                        null
+                            true,
+                            user.getUserId(),
+                            user.getUsername(),
+                            null
                     );
                     // Thêm thông tin đầy đủ vào result
                     result.setFullName(user.getFullName());
@@ -78,14 +78,14 @@ public class AuthViewModel extends ViewModel {
                 } else {
                     // Đăng nhập thất bại
                     AuthResult result = new AuthResult(
-                        false, 
-                        null, 
-                        null, 
-                        "Tên đăng nhập hoặc mật khẩu không đúng"
+                            false,
+                            null,
+                            null,
+                            "Tên đăng nhập hoặc mật khẩu không đúng"
                     );
                     loginResult.postValue(result);
                 }
-                
+
                 isLoading.postValue(false);
             } catch (Exception e) {
                 AuthResult result = new AuthResult(false, null, null, "Đã xảy ra lỗi. Vui lòng thử lại.");
@@ -102,65 +102,65 @@ public class AuthViewModel extends ViewModel {
         new Thread(() -> {
             try {
                 Thread.sleep(500); // Simulate network delay
-                
+
                 if (applicationContext == null) {
                     AuthResult result = new AuthResult(false, null, null, "Lỗi hệ thống. Vui lòng thử lại.");
                     registerResult.postValue(result);
                     isLoading.postValue(false);
                     return;
                 }
-                
+
                 UserManager userManager = UserManager.getInstance(applicationContext);
-                
+
                 // Kiểm tra username đã tồn tại chưa
                 if (userManager.isUsernameExists(username)) {
                     AuthResult result = new AuthResult(
-                        false, 
-                        null, 
-                        null, 
-                        "Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác."
+                            false,
+                            null,
+                            null,
+                            "Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác."
                     );
                     registerResult.postValue(result);
                     isLoading.postValue(false);
                     return;
                 }
-                
+
                 // Kiểm tra email đã tồn tại chưa
                 if (userManager.isEmailExists(email)) {
                     AuthResult result = new AuthResult(
-                        false, 
-                        null, 
-                        null, 
-                        "Email đã được sử dụng. Vui lòng sử dụng email khác."
+                            false,
+                            null,
+                            null,
+                            "Email đã được sử dụng. Vui lòng sử dụng email khác."
                     );
                     registerResult.postValue(result);
                     isLoading.postValue(false);
                     return;
                 }
-                
+
                 // Đăng ký user mới
                 boolean success = userManager.registerUser(fullName, email, username, password);
-                
+
                 if (success) {
                     AuthResult result = new AuthResult(true, null, null, null);
                     registerResult.postValue(result);
                 } else {
                     AuthResult result = new AuthResult(
-                        false, 
-                        null, 
-                        null, 
-                        "Đăng ký thất bại. Vui lòng thử lại."
+                            false,
+                            null,
+                            null,
+                            "Đăng ký thất bại. Vui lòng thử lại."
                     );
                     registerResult.postValue(result);
                 }
-                
+
                 isLoading.postValue(false);
             } catch (Exception e) {
                 AuthResult result = new AuthResult(
-                    false, 
-                    null, 
-                    null, 
-                    "Đã xảy ra lỗi. Vui lòng thử lại."
+                        false,
+                        null,
+                        null,
+                        "Đã xảy ra lỗi. Vui lòng thử lại."
                 );
                 registerResult.postValue(result);
                 isLoading.postValue(false);

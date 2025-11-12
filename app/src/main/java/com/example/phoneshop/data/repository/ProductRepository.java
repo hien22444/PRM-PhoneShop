@@ -1,5 +1,6 @@
 package com.example.phoneshop.data.repository;
 
+import android.util.Log;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -7,8 +8,6 @@ import com.example.phoneshop.data.model.Product;
 import com.example.phoneshop.data.model.ProductResponse;
 import com.example.phoneshop.data.remote.ApiService;
 import com.example.phoneshop.data.remote.RetrofitClient;
-
-import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -19,130 +18,199 @@ public class ProductRepository {
     private final ApiService apiService;
 
     private ProductRepository() {
+        System.out.println("########## ProductRepository CONSTRUCTOR ##########");
         apiService = RetrofitClient.getInstance().getApiService();
+        System.out.println("########## ApiService: " + apiService);
     }
 
     public static synchronized ProductRepository getInstance() {
         if (instance == null) {
+            System.out.println("########## Tạo ProductRepository instance mới ##########");
             instance = new ProductRepository();
         }
+        System.out.println("########## Return ProductRepository: " + instance);
         return instance;
     }
 
-    // Lấy danh sách sản phẩm
     public LiveData<ProductResponse> getProducts(int page, int size, String query, String brand, String sort) {
+        System.out.println("########## ProductRepository.getProducts() ĐƯỢC GỌI ##########");
+        System.out.println("########## page=" + page + ", size=" + size);
+        System.out.println("########## query=" + query + ", brand=" + brand + ", sort=" + sort);
+
         MutableLiveData<ProductResponse> data = new MutableLiveData<>();
+        System.out.println("########## MutableLiveData created: " + data);
 
-        android.util.Log.d("ProductRepository", String.format(
-                "Starting to fetch products - Page: %d, Size: %d, Query: %s, Brand: %s, Sort: %s",
-                page, size, query, brand, sort));
-        android.util.Log.d("ProductRepository", "Base URL: " + RetrofitClient.getInstance().getBaseUrl());
+        Log.e("ProductRepository", "==========================================");
+        Log.e("ProductRepository", "getProducts() ĐƯỢC GỌI");
+        Log.e("ProductRepository", "page=" + page + ", size=" + size);
+        Log.e("ProductRepository", "query=" + query + ", brand=" + brand + ", sort=" + sort);
+        Log.e("ProductRepository", "==========================================");
 
-        Call<ProductResponse> call = apiService.getProducts(page, size, query, brand, sort);
-        android.util.Log.d("ProductRepository", "Full request URL: " + call.request().url());
-        android.util.Log.d("ProductRepository", "Request headers: " + call.request().headers());
+        try {
+            System.out.println("########## Gọi apiService.getProducts()... ##########");
+            Call<ProductResponse> call = apiService.getProducts(page, size, query, brand, sort);
+            System.out.println("########## Call object: " + call);
 
-        call.enqueue(new Callback<ProductResponse>() {
-            @Override
-            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
-                android.util.Log.d("ProductRepository", "Response received with code: " + response.code());
-                android.util.Log.d("ProductRepository", "Response headers: " + response.headers());
+            if (call == null) {
+                System.out.println("########## ❌ Call object is NULL! ##########");
+                Log.e("ProductRepository", "❌ Call object is NULL!");
+                data.setValue(null);
+                return data;
+            }
 
-                if (response.isSuccessful() && response.body() != null) {
-                    ProductResponse productResponse = response.body();
-                    int productCount = (productResponse.getContent() != null) ? productResponse.getContent().size() : 0;
-                    android.util.Log.d("ProductRepository", String.format(
-                            "Successfully fetched products. Total count: %d, Current page items: %d",
-                            productResponse.getTotalElements(), productCount));
+            System.out.println("########## Chuẩn bị enqueue()... ##########");
 
-                    if (productCount > 0) {
-                        Product firstProduct = productResponse.getContent().get(0);
-                        android.util.Log.d("ProductRepository", String.format(
-                                "Sample product - Name: %s, Price: %d, Brand: %s",
-                                firstProduct.getName(), firstProduct.getPrice(), firstProduct.getBrand()));
+            call.enqueue(new Callback<ProductResponse>() {
+                @Override
+                public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
+                    System.out.println("########## ===== API RESPONSE ===== ##########");
+                    System.out.println("########## Success? " + response.isSuccessful());
+                    System.out.println("########## Code: " + response.code());
+                    System.out.println("########## Body null? " + (response.body() == null));
+
+                    Log.e("ProductRepository", "===== API RESPONSE =====");
+                    Log.e("ProductRepository", "Success? " + response.isSuccessful());
+                    Log.e("ProductRepository", "Code: " + response.code());
+                    Log.e("ProductRepository", "Body null? " + (response.body() == null));
+
+                    if (response.isSuccessful() && response.body() != null) {
+                        ProductResponse body = response.body();
+
+                        System.out.println("########## Content null? " + (body.getContent() == null));
+
+                        if (body.getContent() != null) {
+                            System.out.println("########## Content size: " + body.getContent().size());
+                            Log.e("ProductRepository", "Content size: " + body.getContent().size());
+
+                            // Log 3 sản phẩm đầu
+                            for (int i = 0; i < Math.min(3, body.getContent().size()); i++) {
+                                Product p = body.getContent().get(i);
+                                System.out.println("  Product[" + i + "]: " + p.getName());
+                            }
+                        } else {
+                            System.out.println("########## Content is NULL ##########");
+                        }
+
+                        System.out.println("########## Gọi data.postValue()... ##########");
+                        data.postValue(body);
+                        System.out.println("########## ✓ postValue() hoàn tất ##########");
+
+                    } else {
+                        System.out.println("########## ❌ Response not successful or body is null ##########");
+                        Log.e("ProductRepository", "Response not successful or body is null");
+                        data.setValue(null);
                     }
+                }
 
-                    data.setValue(productResponse);
-                } else {
-                    android.util.Log.e("ProductRepository", String.format(
-                            "Error fetching products. Response Code: %d, Message: %s",
-                            response.code(), response.message()));
+                @Override
+                public void onFailure(Call<ProductResponse> call, Throwable t) {
+                    System.out.println("########## ===== API FAILURE ===== ##########");
+                    System.out.println("########## Error: " + t.getMessage());
+                    t.printStackTrace();
 
-                    try {
-                        String errorBody = response.errorBody() != null ? response.errorBody().string()
-                                : "Unknown error";
-                        android.util.Log.e("ProductRepository", "Error response body: " + errorBody);
-                    } catch (Exception e) {
-                        android.util.Log.e("ProductRepository", "Error reading error response body", e);
-                    }
+                    Log.e("ProductRepository", "===== API FAILURE =====");
+                    Log.e("ProductRepository", "Error: " + t.getMessage());
+                    t.printStackTrace();
+
                     data.setValue(null);
                 }
-            }
+            });
 
-            @Override
-            public void onFailure(Call<ProductResponse> call, Throwable t) {
-                android.util.Log.e("ProductRepository", String.format(
-                        "Network failure while fetching products. Request URL: %s",
-                        call.request().url()));
-                android.util.Log.e("ProductRepository", "Error details:", t);
-                data.setValue(null);
-            }
-        });
+            System.out.println("########## enqueue() đã được gọi ##########");
 
+        } catch (Exception e) {
+            System.out.println("########## ❌ EXCEPTION trong getProducts(): " + e.getMessage());
+            e.printStackTrace();
+            Log.e("ProductRepository", "❌ EXCEPTION: " + e.getMessage(), e);
+            data.setValue(null);
+        }
+
+        System.out.println("########## Return LiveData: " + data);
+        Log.e("ProductRepository", "Return LiveData, đợi API response...");
         return data;
     }
 
-    // Lấy chi tiết sản phẩm
-    public LiveData<Product> getProductById(String productId) {
+    public LiveData<Product> getProductById(String id) {
         MutableLiveData<Product> data = new MutableLiveData<>();
-
-        // Log request
-        android.util.Log.d("ProductRepository", "Fetching product details for ID: " + productId);
-
-        apiService.getProductById(productId).enqueue(new Callback<Product>() {
+        apiService.getProductById(id).enqueue(new Callback<Product>() {
             @Override
             public void onResponse(Call<Product> call, Response<Product> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    android.util.Log.d("ProductRepository",
-                            "Successfully fetched product: " + response.body().getName());
+                if (response.isSuccessful()) {
                     data.setValue(response.body());
                 } else {
-                    android.util.Log.e("ProductRepository", "Error fetching product. Code: " + response.code() +
-                            " Message: " + response.message());
-                    try {
-                        String errorBody = response.errorBody() != null ? response.errorBody().string()
-                                : "Unknown error";
-                        android.util.Log.e("ProductRepository", "Error body: " + errorBody);
-                    } catch (Exception e) {
-                        android.util.Log.e("ProductRepository", "Error reading error body", e);
-                    }
                     data.setValue(null);
                 }
             }
 
             @Override
             public void onFailure(Call<Product> call, Throwable t) {
-                android.util.Log.e("ProductRepository", "Network failure fetching product", t);
                 data.setValue(null);
             }
         });
-
         return data;
     }
 
-    // Tìm kiếm sản phẩm
     public LiveData<ProductResponse> searchProducts(String query, int page, int size) {
-        android.util.Log.d("ProductRepository", "Searching products with query: " + query);
-        
-        // Use the main getProducts method with query parameter for better consistency
-        return getProducts(page, size, query, null, null);
+        MutableLiveData<ProductResponse> data = new MutableLiveData<>();
+        apiService.searchProducts(query, page, size).enqueue(new Callback<ProductResponse>() {
+            @Override
+            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
+                data.setValue(response.isSuccessful() ? response.body() : null);
+            }
+
+            @Override
+            public void onFailure(Call<ProductResponse> call, Throwable t) {
+                data.setValue(null);
+            }
+        });
+        return data;
     }
 
-    // Lọc theo thương hiệu
-    public LiveData<ProductResponse> getProductsByBrand(String brand, int page, int size) {
-        android.util.Log.d("ProductRepository", "Filtering products by brand: " + brand);
-        
-        // Use the main getProducts method with brand parameter for better consistency
-        return getProducts(page, size, null, brand, null);
+    public LiveData<Product> createProduct(Product p) {
+        MutableLiveData<Product> data = new MutableLiveData<>();
+        apiService.createProduct(p).enqueue(new Callback<Product>() {
+            @Override
+            public void onResponse(Call<Product> call, Response<Product> response) {
+                data.setValue(response.isSuccessful() ? response.body() : null);
+            }
+
+            @Override
+            public void onFailure(Call<Product> call, Throwable t) {
+                data.setValue(null);
+            }
+        });
+        return data;
+    }
+
+    public LiveData<Product> updateProduct(String id, Product p) {
+        MutableLiveData<Product> data = new MutableLiveData<>();
+        apiService.updateProduct(id, p).enqueue(new Callback<Product>() {
+            @Override
+            public void onResponse(Call<Product> call, Response<Product> response) {
+                data.setValue(response.isSuccessful() ? response.body() : null);
+            }
+
+            @Override
+            public void onFailure(Call<Product> call, Throwable t) {
+                data.setValue(null);
+            }
+        });
+        return data;
+    }
+
+    public LiveData<Boolean> deleteProduct(String id) {
+        MutableLiveData<Boolean> success = new MutableLiveData<>();
+        apiService.deleteProduct(id).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                success.setValue(response.isSuccessful());
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                success.setValue(false);
+            }
+        });
+        return success;
     }
 }

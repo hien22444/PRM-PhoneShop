@@ -40,6 +40,10 @@
                 <data android:scheme="phoneshop" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".feature_admin_main.AdminMainActivity"
+            android:exported="false"
+            android:label="Trang Quản Trị" />
     </application>
 
 </manifest>

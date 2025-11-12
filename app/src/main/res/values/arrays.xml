@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand: mục đầu là "Tất cả" để xoá filter -->
+    <string-array name="brands_array">
+        <item>Tất cả</item>
+        <item>Samsung</item>
+        <item>Apple</item>
+        <item>Xiaomi</item>
+        <item>OPPO</item>
+    </string-array>
+
+    <!-- Sort theo giá -->
+    <string-array name="sort_array">
+        <item>Mặc định</item>
+        <item>Giá tăng dần</item>
+        <item>Giá giảm dần</item>
+    </string-array>
+</resources>

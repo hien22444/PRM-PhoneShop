@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/admin_nav_graph"
+    app:startDestination="@id/nav_admin_dashboard">
+
+    <!-- Trang Dashboard (Vẫn là "giả") -->
+    <fragment
+        android:id="@+id/nav_admin_dashboard"
+        android:name="com.example.phoneshop.feature_admin_main.AdminPlaceholderFragment"
+        android:label="Dashboard"
+        tools:layout="@layout/fragment_admin_placeholder" />
+
+    <!-- ======================================================= -->
+    <!--  THAY ĐỔI NẰM Ở ĐÂY                                   -->
+    <!-- ======================================================= -->
+    <!-- Trang Nhóm SP (Đã trỏ đến Fragment thật) -->
+    <fragment
+        android:id="@+id/nav_admin_categories"
+        android:name="com.example.phoneshop.feature_admin_inventory.AdminCategoryFragment"
+        android:label="Nhóm SP"
+        tools:layout="@layout/fragment_admin_category_list" >
+
+        <!-- THÊM ACTION NÀY ĐỂ ĐI TỚI TRANG SẢN PHẨM -->
+        <action
+            android:id="@+id/action_categories_to_products"
+            app:destination="@id/nav_admin_products" />
+
+    </fragment>
+    <!-- ======================================================= -->
+
+
+    <!-- Trang Sản Phẩm (Đã trỏ đến Fragment thật) -->
+    <fragment
+        android:id="@+id/nav_admin_products"
+        android:name="com.example.phoneshop.feature_admin_inventory.AdminProductListFragment"
+        android:label="Sản Phẩm"
+        tools:layout="@layout/fragment_admin_product_list" >
+
+        <!-- THÊM ARGUMENT NÀY ĐỂ NHẬN BRANDNAME -->
+        <argument
+            android:name="brandName"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+    </fragment>
+
+
+    <!-- Trang Đơn Hàng (Vẫn là "giả") -->
+    <fragment
+        android:id="@+id/nav_admin_orders"
+        android:name="com.example.phoneshop.feature_admin_main.AdminPlaceholderFragment"
+        android:label="Đơn Hàng"
+        tools:layout="@layout/fragment_admin_placeholder" />
+
+    <!-- Trang Người Dùng (Vẫn là "giả") -->
+    <fragment
+        android:id="@+id/nav_admin_users"
+        android:name="com.example.phoneshop.feature_admin_main.AdminPlaceholderFragment"
+        android:label="Người Dùng"
+        tools:layout="@layout/fragment_admin_placeholder" />
+
+    <!-- Trang Cá Nhân (Vẫn là "giả") -->
+    <fragment
+        android:id="@+id/nav_admin_profile"
+        android:name="com.example.phoneshop.feature_admin_main.AdminPlaceholderFragment"
+        android:label="Cá Nhân"
+        tools:layout="@layout/fragment_admin_placeholder" />
+
+</navigation>
