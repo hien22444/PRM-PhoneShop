@@ -5,14 +5,19 @@
     android:id="@+id/main_navgraph"
     app:startDestination="@id/homeFragment">
 
-    <!-- ========== AUTH FEATURES ========== -->
-    
-    <!-- Login Fragment -->
+    <!-- ===================== GLOBAL ACTION ===================== -->
+    <action
+        android:id="@+id/action_global_loginFragment"
+        app:destination="@id/loginFragment"
+        app:popUpTo="@id/homeFragment"
+        app:popUpToInclusive="true" />
+
+    <!-- ===================== AUTH FEATURES ===================== -->
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.example.phoneshop.feature_auth.LoginFragment"
         android:label="fragment_login"
-        tools:layout="@layout/fragment_login" >
+        tools:layout="@layout/fragment_login">
         <action
             android:id="@+id/action_loginFragment_to_registerFragment"
             app:destination="@id/registerFragment" />
@@ -26,28 +31,24 @@
             app:popUpToInclusive="true" />
     </fragment>
 
-    <!-- Register Fragment -->
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.example.phoneshop.feature_auth.RegisterFragment"
         android:label="fragment_register"
         tools:layout="@layout/fragment_register" />
 
-    <!-- Forgot Password Fragment -->
     <fragment
         android:id="@+id/forgotPasswordFragment"
         android:name="com.example.phoneshop.feature_auth.ForgotPasswordFragment"
         android:label="fragment_forgot_password"
         tools:layout="@layout/fragment_forgot_password" />
 
-    <!-- ========== PROFILE FEATURES ========== -->
-    
-    <!-- Profile Fragment -->
+    <!-- ===================== PROFILE FEATURES ===================== -->
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.example.phoneshop.feature_profile.ProfileFragment"
         android:label="fragment_profile"
-        tools:layout="@layout/fragment_profile" >
+        tools:layout="@layout/fragment_profile">
         <action
             android:id="@+id/action_profileFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
@@ -68,63 +69,57 @@
             app:destination="@id/favoriteFragment" />
     </fragment>
 
-    <!-- Edit Profile Fragment -->
     <fragment
         android:id="@+id/editProfileFragment"
         android:name="com.example.phoneshop.feature_profile.EditProfileFragment"
         android:label="Chỉnh sửa thông tin"
         tools:layout="@layout/fragment_edit_profile" />
 
-    <!-- Settings Fragment -->
     <fragment
         android:id="@+id/settingsFragment"
         android:name="com.example.phoneshop.feature_profile.SettingsFragment"
         android:label="Cài đặt"
         tools:layout="@layout/fragment_settings" />
 
-    <!-- Support Fragment -->
     <fragment
         android:id="@+id/supportFragment"
         android:name="com.example.phoneshop.feature_profile.SupportFragment"
         android:label="Hỗ trợ"
         tools:layout="@layout/fragment_support" />
 
-    <!-- Fragment 1: Giỏ hàng -->
+
+
+    <!-- ===================== CART & ORDER FEATURES ===================== -->
     <fragment
         android:id="@+id/cartFragment"
         android:name="com.example.phoneshop.features.feature_cart.CartFragment"
         android:label="fragment_cart"
-        tools:layout="@layout/fragment_cart" >
+        tools:layout="@layout/fragment_cart">
         <action
             android:id="@+id/action_cartFragment_to_checkoutFragment"
             app:destination="@id/checkoutFragment" />
     </fragment>
 
-    <!-- Fragment 2: Thanh toán -->
     <fragment
         android:id="@+id/checkoutFragment"
         android:name="com.example.phoneshop.features.feature_cart.CheckoutFragment"
         android:label="fragment_checkout"
-        tools:layout="@layout/fragment_checkout" >
-
+        tools:layout="@layout/fragment_checkout">
         <action
             android:id="@+id/action_checkoutFragment_to_paymentWebViewFragment"
             app:destination="@id/paymentWebViewFragment" />
-
         <action
             android:id="@+id/action_checkoutFragment_to_orderSuccessFragment"
             app:destination="@id/orderSuccessFragment"
             app:popUpTo="@id/cartFragment"
             app:popUpToInclusive="true" />
-
     </fragment>
 
-    <!-- Fragment 3: WebView Thanh toán -->
     <fragment
         android:id="@+id/paymentWebViewFragment"
         android:name="com.example.phoneshop.features.feature_cart.PaymentWebViewFragment"
         android:label="fragment_payment_webview"
-        tools:layout="@layout/fragment_payment_webview" >
+        tools:layout="@layout/fragment_payment_webview">
         <action
             android:id="@+id/action_paymentWebViewFragment_to_orderSuccessFragment"
             app:destination="@id/orderSuccessFragment"
@@ -135,12 +130,11 @@
             app:destination="@id/reviewFragment" />
     </fragment>
 
-    <!-- Fragment 4: Thành công -->
     <fragment
         android:id="@+id/orderSuccessFragment"
         android:name="com.example.phoneshop.features.feature_cart.OrderSuccessFragment"
         android:label="fragment_order_success"
-        tools:layout="@layout/fragment_order_success" >
+        tools:layout="@layout/fragment_order_success">
         <action
             android:id="@+id/action_orderSuccessFragment_to_orderHistoryFragment"
             app:destination="@id/orderHistoryFragment"
@@ -153,12 +147,11 @@
             app:popUpToInclusive="true" />
     </fragment>
 
-    <!-- Fragment 5: Lịch sử -->
     <fragment
         android:id="@+id/orderHistoryFragment"
         android:name="com.example.phoneshop.features.feature_order.OrderHistoryFragment"
         android:label="fragment_order_history"
-        tools:layout="@layout/fragment_order_history" >
+        tools:layout="@layout/fragment_order_history">
         <action
             android:id="@+id/action_orderHistoryFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
@@ -170,25 +163,22 @@
             app:destination="@id/productDetailFragment" />
     </fragment>
 
-    <!-- Fragment 6: Chi tiết đơn hàng -->
     <fragment
         android:id="@+id/orderDetailFragment"
         android:name="com.example.phoneshop.features.feature_order.OrderDetailFragment"
         android:label="fragment_order_detail"
-        tools:layout="@layout/fragment_order_detail" >
+        tools:layout="@layout/fragment_order_detail">
         <argument
             android:name="order_id"
             app:argType="string" />
     </fragment>
 
-    <!-- ========== SHOPPING FEATURES ========== -->
-    
-    <!-- Home Fragment - Trang chủ -->
+    <!-- ===================== SHOPPING FEATURES ===================== -->
     <fragment
         android:id="@+id/homeFragment"
         android:name="com.example.phoneshop.feature_shopping.HomeFragment"
         android:label="fragment_home"
-        tools:layout="@layout/fragment_home" >
+        tools:layout="@layout/fragment_home">
         <action
             android:id="@+id/action_homeFragment_to_productDetailFragment"
             app:destination="@id/productDetailFragment" />
@@ -206,12 +196,11 @@
             app:destination="@id/loginFragment" />
     </fragment>
 
-    <!-- Product Detail Fragment - Chi tiết sản phẩm -->
     <fragment
         android:id="@+id/productDetailFragment"
         android:name="com.example.phoneshop.feature_shopping.ProductDetailFragment"
         android:label="fragment_product_detail"
-        tools:layout="@layout/fragment_product_detail" >
+        tools:layout="@layout/fragment_product_detail">
         <argument
             android:name="product_id"
             app:argType="string" />
@@ -229,37 +218,33 @@
             app:destination="@id/loginFragment" />
     </fragment>
 
-    <!-- Product Search Fragment - Tìm kiếm -->
     <fragment
         android:id="@+id/productSearchFragment"
         android:name="com.example.phoneshop.feature_shopping.ProductSearchFragment"
         android:label="fragment_product_search"
-        tools:layout="@layout/fragment_product_search" >
+        tools:layout="@layout/fragment_product_search">
         <action
             android:id="@+id/action_productSearchFragment_to_productDetailFragment"
             app:destination="@id/productDetailFragment" />
     </fragment>
 
-    <!-- Store Map Fragment - Bản đồ cửa hàng -->
     <fragment
         android:id="@+id/storeMapFragment"
         android:name="com.example.phoneshop.feature_shopping.StoreMapFragment"
         android:label="fragment_store_map"
         tools:layout="@layout/fragment_store_map" />
 
-    <!-- Product Comparison Fragment - So sánh sản phẩm -->
     <fragment
         android:id="@+id/productComparisonFragment"
         android:name="com.example.phoneshop.feature_shopping.comparison.ProductComparisonFragment"
         android:label="fragment_product_comparison"
         tools:layout="@layout/fragment_product_comparison" />
 
-    <!-- AR View Fragment - Xem AR 3D -->
     <fragment
         android:id="@+id/arViewFragment"
         android:name="com.example.phoneshop.feature_shopping.ar_view.ArViewFragment"
         android:label="fragment_ar_view"
-        tools:layout="@layout/fragment_ar_view" >
+        tools:layout="@layout/fragment_ar_view">
         <argument
             android:name="product_name"
             app:argType="string"
@@ -270,25 +255,22 @@
             android:defaultValue="0L" />
     </fragment>
 
-    <!-- ========== FAVORITE & REVIEW FEATURES ========== -->
-    
-    <!-- Favorite Fragment -->
+    <!-- ===================== FAVORITE & REVIEW FEATURES ===================== -->
     <fragment
         android:id="@+id/favoriteFragment"
         android:name="com.example.phoneshop.feature_profile.FavoriteFragment"
         android:label="fragment_favorite"
-        tools:layout="@layout/fragment_favorite" >
+        tools:layout="@layout/fragment_favorite">
         <action
             android:id="@+id/action_favoriteFragment_to_productDetailFragment"
             app:destination="@id/productDetailFragment" />
     </fragment>
 
-    <!-- Review Fragment -->
     <fragment
         android:id="@+id/reviewFragment"
         android:name="com.example.phoneshop.feature_review.ReviewFragment"
         android:label="fragment_review"
-        tools:layout="@layout/fragment_single_review" >
+        tools:layout="@layout/fragment_single_review">
         <argument
             android:name="order_id"
             app:argType="string"

@@ -14,8 +14,8 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
-import com.example.phoneshop.features.feature_cart.CartViewModel;
 import com.example.phoneshop.R;
+import com.example.phoneshop.features.feature_cart.CartViewModel;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -53,9 +53,9 @@ public class LoginFragment extends Fragment {
     public void onViewCreated(@NonNull android.view.View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Setup ViewModel, Navigation và SharedPrefs
         viewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         viewModel.setApplicationContext(requireContext());
-
         navController = Navigation.findNavController(view);
         sharedPreferences = requireActivity().getSharedPreferences("PhoneShopPrefs", Context.MODE_PRIVATE);
 
@@ -77,6 +77,7 @@ public class LoginFragment extends Fragment {
     }
 
     private void setupListeners() {
+        // Login thường
         btnSignIn.setOnClickListener(v -> {
             String username = etUsername.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
@@ -85,9 +86,11 @@ public class LoginFragment extends Fragment {
             }
         });
 
+        // Chuyển màn khác
         btnRegister.setOnClickListener(v -> navController.navigate(R.id.action_loginFragment_to_registerFragment));
         btnForgotPassword.setOnClickListener(v -> navController.navigate(R.id.action_loginFragment_to_forgotPasswordFragment));
 
+        // Login Google
         btnGoogleSignIn.setOnClickListener(v -> signInWithGoogle());
     }
 
@@ -97,37 +100,38 @@ public class LoginFragment extends Fragment {
         if (username.isEmpty()) {
             tilUsername.setError("Vui lòng nhập tên đăng nhập");
             isValid = false;
-        } else tilUsername.setError(null);
+        } else {
+            tilUsername.setError(null);
+        }
 
         if (password.isEmpty()) {
             tilPassword.setError("Vui lòng nhập mật khẩu");
             isValid = false;
         } else if (password.length() < 6 && !("admin".equals(username) && "admin".equals(password))) {
-            // Allow admin credentials even if password is less than 6 characters
             tilPassword.setError("Mật khẩu phải có ít nhất 6 ký tự");
             isValid = false;
-        } else tilPassword.setError(null);
+        } else {
+            tilPassword.setError(null);
+        }
 
         return isValid;
     }
 
     private void observeViewModel() {
         viewModel.getLoginResult().observe(getViewLifecycleOwner(), result -> {
-            if (result != null) {
-                if (result.isSuccess()) {
-                    if (result.isAdmin()) {
-                        // Admin login - navigate to AdminActivity
-                        saveAdminInfo(result.getUserId(), result.getUsername(), result.getFullName(), result.getEmail());
-                        navigateToAdminPanel();
-                    } else {
-                        // Regular user login
-                        saveUserInfo(result.getUserId(), result.getUsername(), result.getFullName(), result.getEmail());
-                        checkCartItems();
-                        navController.navigate(R.id.action_loginFragment_to_homeFragment);
-                    }
+            if (result == null) return;
+
+            if (result.isSuccess()) {
+                if (result.isAdmin()) {
+                    saveAdminInfo(result.getUserId(), result.getUsername(), result.getFullName(), result.getEmail());
+                    navigateToAdminPanel();
                 } else {
-                    Toast.makeText(getContext(), result.getErrorMessage(), Toast.LENGTH_SHORT).show();
+                    saveUserInfo(result.getUserId(), result.getUsername(), result.getFullName(), result.getEmail());
+                    checkCartItems();
+                    navController.navigate(R.id.action_loginFragment_to_homeFragment);
                 }
+            } else {
+                Toast.makeText(getContext(), result.getErrorMessage(), Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -137,29 +141,43 @@ public class LoginFragment extends Fragment {
         });
     }
 
+    // ------------------ Lưu thông tin người dùng ------------------
     private void saveUserInfo(String userId, String username, String fullName, String email) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putBoolean("is_logged_in", true);
         editor.putString("user_id", userId);
         editor.putString("username", username);
-        if (fullName != null) editor.putString("full_name", fullName);
-        if (email != null) editor.putString("email", email);
+        editor.putString("full_name", fullName);
+        editor.putString("email", email);
         editor.apply();
     }
 
+    private void saveAdminInfo(String userId, String username, String fullName, String email) {
+        SharedPreferences.Editor editor = requireActivity()
+                .getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+                .edit();
+        editor.putBoolean("admin_logged_in", true);
+        editor.putString("admin_id", userId);
+        editor.putString("admin_username", username);
+        editor.putString("admin_fullname", fullName);
+        editor.putString("admin_email", email);
+        editor.apply();
+    }
+
+    // ------------------ Kiểm tra giỏ hàng ------------------
     private void checkCartItems() {
         CartViewModel cartViewModel = new ViewModelProvider(requireActivity()).get(CartViewModel.class);
         cartViewModel.getCartItems().observe(getViewLifecycleOwner(), cartItems -> {
             if (cartItems != null && !cartItems.isEmpty()) {
                 Toast.makeText(getContext(),
-                        "Bạn đang có " + cartItems.size() + " đơn hàng trong giỏ hàng",
+                        "Bạn đang có " + cartItems.size() + " sản phẩm trong giỏ hàng",
                         Toast.LENGTH_LONG).show();
             }
         });
         cartViewModel.loadCartItems();
     }
 
-    // Google Sign-In
+    // ------------------ GOOGLE SIGN-IN ------------------
     private void setupGoogleSignIn() {
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
@@ -168,11 +186,13 @@ public class LoginFragment extends Fragment {
     }
 
     private void signInWithGoogle() {
-        startActivityForResult(googleSignInClient.getSignInIntent(), RC_SIGN_IN);
+        googleSignInClient.signOut().addOnCompleteListener(task -> {
+            startActivityForResult(googleSignInClient.getSignInIntent(), RC_SIGN_IN);
+        });
     }
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable android.content.Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == RC_SIGN_IN) {
@@ -191,25 +211,36 @@ public class LoginFragment extends Fragment {
         }
     }
 
-    private void saveAdminInfo(String userId, String username, String fullName, String email) {
-        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("admin_prefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("admin_id", userId);
-        editor.putString("admin_username", username);
-        editor.putString("admin_fullname", fullName);
-        editor.putString("admin_email", email);
-        editor.putBoolean("admin_logged_in", true);
-        editor.apply();
-    }
-
+    // ------------------ ADMIN PANEL ------------------
     private void navigateToAdminPanel() {
         try {
             Intent intent = new Intent(getActivity(), com.example.phoneshop.features.feature_admin.AdminActivity.class);
             startActivity(intent);
-            requireActivity().finish(); // Close current activity
+            requireActivity().finish();
         } catch (Exception e) {
             Toast.makeText(getContext(), "Lỗi mở Admin Panel: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            // Fallback: stay on current screen
         }
+    }
+
+    // ------------------ LOGOUT ------------------
+    public void logout() {
+        // Xóa session user thường
+        sharedPreferences.edit().clear().apply();
+
+        // Xóa session admin (nếu có)
+        requireActivity()
+                .getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .apply();
+
+        // Sign out Google
+        if (googleSignInClient != null) {
+            googleSignInClient.signOut();
+        }
+
+        // Quay lại màn đăng nhập
+        navController.navigate(R.id.loginFragment);
+        Toast.makeText(getContext(), "Đã đăng xuất thành công", Toast.LENGTH_SHORT).show();
     }
 }

@@ -80,28 +80,39 @@ public class AdminOrderManagementFragment extends Fragment implements AdminOrder
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        initViews(view);
-        setupViewModel();
-        setupRecyclerView();
-        setupStatusChips();
-        setupListeners();
-        observeViewModel();
-        
-        // Initialize currency formatter
-        currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
-        
-        // Load initial data
-        loadOrders(true);
+        try {
+            initViews(view);
+            setupViewModel();
+            setupRecyclerView();
+            setupStatusChips();
+            setupListeners();
+            observeViewModel();
+            
+            // Initialize currency formatter
+            currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("vi-VN"));
+            
+            // Load initial data
+            loadOrders(true);
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error in onViewCreated: " + e.getMessage(), e);
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Lỗi khởi tạo quản lý đơn hàng: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void initViews(View view) {
-        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
-        progressIndicator = view.findViewById(R.id.progressIndicator);
-        etSearch = view.findViewById(R.id.etSearch);
-        btnSearch = view.findViewById(R.id.btnSearch);
-        btnClearSearch = view.findViewById(R.id.btnClearSearch);
-        chipGroupStatus = view.findViewById(R.id.chipGroupStatus);
-        rvOrders = view.findViewById(R.id.rvOrders);
+        try {
+            swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+            progressIndicator = view.findViewById(R.id.progressIndicator);
+            etSearch = view.findViewById(R.id.etSearch);
+            btnSearch = view.findViewById(R.id.btnSearch);
+            btnClearSearch = view.findViewById(R.id.btnClearSearch);
+            chipGroupStatus = view.findViewById(R.id.chipGroupStatus);
+            rvOrders = view.findViewById(R.id.rvOrders);
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error initializing views: " + e.getMessage(), e);
+        }
     }
 
     private void setupViewModel() {
@@ -109,89 +120,115 @@ public class AdminOrderManagementFragment extends Fragment implements AdminOrder
     }
 
     private void setupRecyclerView() {
-        ordersAdapter = new AdminOrdersAdapter(new ArrayList<>(), this);
-        
-        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
-        rvOrders.setLayoutManager(layoutManager);
-        rvOrders.setAdapter(ordersAdapter);
-        
-        // Add scroll listener for pagination
-        rvOrders.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
+        try {
+            if (rvOrders != null) {
+                ordersAdapter = new AdminOrdersAdapter(new ArrayList<>(), this);
                 
-                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
-                if (layoutManager != null && !isLoading && hasMoreData) {
-                    int visibleItemCount = layoutManager.getChildCount();
-                    int totalItemCount = layoutManager.getItemCount();
-                    int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
-                    
-                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 5) {
-                        loadOrders(false);
+                LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
+                rvOrders.setLayoutManager(layoutManager);
+                rvOrders.setAdapter(ordersAdapter);
+                
+                // Add scroll listener for pagination
+                rvOrders.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                    @Override
+                    public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                        super.onScrolled(recyclerView, dx, dy);
+                        
+                        LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                        if (layoutManager != null && !isLoading && hasMoreData) {
+                            int visibleItemCount = layoutManager.getChildCount();
+                            int totalItemCount = layoutManager.getItemCount();
+                            int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+                            
+                            if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 5) {
+                                loadOrders(false);
+                            }
+                        }
                     }
-                }
+                });
             }
-        });
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error setting up RecyclerView: " + e.getMessage(), e);
+        }
     }
 
     private void setupStatusChips() {
-        // Add "All" chip
-        Chip chipAll = new Chip(getContext());
-        chipAll.setText("Tất cả");
-        chipAll.setCheckable(true);
-        chipAll.setChecked(true);
-        chipAll.setTag("all");
-        chipGroupStatus.addView(chipAll);
-        
-        // Add status chips
-        for (String status : ORDER_STATUSES) {
-            Chip chip = new Chip(getContext());
-            chip.setText(status);
-            chip.setCheckable(true);
-            chip.setTag(status);
-            chipGroupStatus.addView(chip);
+        try {
+            if (chipGroupStatus != null && getContext() != null) {
+                // Add "All" chip
+                Chip chipAll = new Chip(getContext());
+                chipAll.setText("Tất cả");
+                chipAll.setCheckable(true);
+                chipAll.setChecked(true);
+                chipAll.setTag("all");
+                chipGroupStatus.addView(chipAll);
+                
+                // Add status chips
+                for (String status : ORDER_STATUSES) {
+                    Chip chip = new Chip(getContext());
+                    chip.setText(status);
+                    chip.setCheckable(true);
+                    chip.setTag(status);
+                    chipGroupStatus.addView(chip);
+                }
+                
+                // Set single selection
+                chipGroupStatus.setSingleSelection(true);
+            }
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error setting up status chips: " + e.getMessage(), e);
         }
-        
-        // Set single selection
-        chipGroupStatus.setSingleSelection(true);
     }
 
     private void setupListeners() {
-        // Swipe to refresh
-        swipeRefreshLayout.setOnRefreshListener(() -> {
-            currentPage = 0;
-            hasMoreData = true;
-            loadOrders(true);
-        });
-        
-        // Search button
-        btnSearch.setOnClickListener(v -> performSearch());
-        
-        // Clear search button
-        btnClearSearch.setOnClickListener(v -> clearSearch());
-        
-        // Search on enter key
-        etSearch.setOnEditorActionListener((v, actionId, event) -> {
-            performSearch();
-            return true;
-        });
-        
-        // Status filter chips
-        chipGroupStatus.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (!checkedIds.isEmpty()) {
-                Chip selectedChip = group.findViewById(checkedIds.get(0));
-                if (selectedChip != null) {
-                    String status = (String) selectedChip.getTag();
-                    if (!status.equals(currentStatus)) {
-                        currentStatus = status;
-                        currentPage = 0;
-                        hasMoreData = true;
-                        loadOrders(true);
-                    }
-                }
+        try {
+            // Swipe to refresh
+            if (swipeRefreshLayout != null) {
+                swipeRefreshLayout.setOnRefreshListener(() -> {
+                    currentPage = 0;
+                    hasMoreData = true;
+                    loadOrders(true);
+                });
             }
-        });
+            
+            // Search button
+            if (btnSearch != null) {
+                btnSearch.setOnClickListener(v -> performSearch());
+            }
+            
+            // Clear search button
+            if (btnClearSearch != null) {
+                btnClearSearch.setOnClickListener(v -> clearSearch());
+            }
+            
+            // Search on enter key
+            if (etSearch != null) {
+                etSearch.setOnEditorActionListener((v, actionId, event) -> {
+                    performSearch();
+                    return true;
+                });
+            }
+            
+            // Status filter chips
+            if (chipGroupStatus != null) {
+                chipGroupStatus.setOnCheckedStateChangeListener((group, checkedIds) -> {
+                    if (!checkedIds.isEmpty()) {
+                        Chip selectedChip = group.findViewById(checkedIds.get(0));
+                        if (selectedChip != null) {
+                            String status = (String) selectedChip.getTag();
+                            if (!status.equals(currentStatus)) {
+                                currentStatus = status;
+                                currentPage = 0;
+                                hasMoreData = true;
+                                loadOrders(true);
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error setting up listeners: " + e.getMessage(), e);
+        }
     }
 
     private void observeViewModel() {

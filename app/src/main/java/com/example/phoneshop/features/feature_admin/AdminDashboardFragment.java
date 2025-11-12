@@ -68,45 +68,57 @@ public class AdminDashboardFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        initViews(view);
-        setupViewModel();
-        setupRecyclerView();
-        setupListeners();
-        observeViewModel();
-        
-        // Load initial data
-        loadDashboardData();
+        try {
+            initViews(view);
+            setupViewModel();
+            setupRecyclerView();
+            setupListeners();
+            observeViewModel();
+            
+            // Load initial data
+            loadDashboardData();
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error in onViewCreated: " + e.getMessage(), e);
+            // Show error message to user
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Lỗi khởi tạo dashboard: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void initViews(View view) {
-        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
-        progressIndicator = view.findViewById(R.id.progressIndicator);
-        
-        // Welcome message
-        tvWelcomeMessage = view.findViewById(R.id.tvWelcomeMessage);
-        
-        // Statistics Cards
-        cardUsers = view.findViewById(R.id.cardUsers);
-        cardOrders = view.findViewById(R.id.cardOrders);
-        cardRevenue = view.findViewById(R.id.cardRevenue);
-        cardProducts = view.findViewById(R.id.cardProducts);
-        
-        // Statistics TextViews
-        tvTotalUsers = view.findViewById(R.id.tvTotalUsers);
-        tvTotalOrders = view.findViewById(R.id.tvTotalOrders);
-        tvTotalRevenue = view.findViewById(R.id.tvTotalRevenue);
-        tvTotalProducts = view.findViewById(R.id.tvTotalProducts);
-        
-        // Order Status TextViews
-        tvProcessingOrders = view.findViewById(R.id.tvProcessingOrders);
-        tvCompletedOrders = view.findViewById(R.id.tvCompletedOrders);
-        
-        // Recent Orders
-        rvRecentOrders = view.findViewById(R.id.rvRecentOrders);
-        tvNoRecentOrders = view.findViewById(R.id.tvNoRecentOrders);
-        
-        // Initialize currency formatter
-        currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+        try {
+            swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+            progressIndicator = view.findViewById(R.id.progressIndicator);
+            
+            // Welcome message
+            tvWelcomeMessage = view.findViewById(R.id.tvWelcomeMessage);
+            
+            // Statistics Cards
+            cardUsers = view.findViewById(R.id.cardUsers);
+            cardOrders = view.findViewById(R.id.cardOrders);
+            cardRevenue = view.findViewById(R.id.cardRevenue);
+            cardProducts = view.findViewById(R.id.cardProducts);
+            
+            // Statistics TextViews
+            tvTotalUsers = view.findViewById(R.id.tvTotalUsers);
+            tvTotalOrders = view.findViewById(R.id.tvTotalOrders);
+            tvTotalRevenue = view.findViewById(R.id.tvTotalRevenue);
+            tvTotalProducts = view.findViewById(R.id.tvTotalProducts);
+            
+            // Order Status TextViews
+            tvProcessingOrders = view.findViewById(R.id.tvProcessingOrders);
+            tvCompletedOrders = view.findViewById(R.id.tvCompletedOrders);
+            
+            // Recent Orders
+            rvRecentOrders = view.findViewById(R.id.rvRecentOrders);
+            tvNoRecentOrders = view.findViewById(R.id.tvNoRecentOrders);
+            
+            // Initialize currency formatter
+            currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("vi-VN"));
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error initializing views: " + e.getMessage(), e);
+        }
     }
 
     private void setupViewModel() {
@@ -114,13 +126,19 @@ public class AdminDashboardFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        recentOrdersAdapter = new RecentOrdersAdapter(
-            new ArrayList<>(), 
-            this::onOrderStatusUpdate,
-            this::onCustomerClick
-        );
-        rvRecentOrders.setLayoutManager(new LinearLayoutManager(getContext()));
-        rvRecentOrders.setAdapter(recentOrdersAdapter);
+        try {
+            if (rvRecentOrders != null) {
+                recentOrdersAdapter = new RecentOrdersAdapter(
+                    new ArrayList<>(), 
+                    this::onOrderStatusUpdate,
+                    this::onCustomerClick
+                );
+                rvRecentOrders.setLayoutManager(new LinearLayoutManager(getContext()));
+                rvRecentOrders.setAdapter(recentOrdersAdapter);
+            }
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error setting up RecyclerView: " + e.getMessage(), e);
+        }
     }
 
     private void setupListeners() {
@@ -149,35 +167,35 @@ public class AdminDashboardFragment extends Fragment {
         adminViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
             updateLoadingState(isLoading);
         });
-        
+
         // Observe dashboard statistics
         adminViewModel.getDashboardStats().observe(getViewLifecycleOwner(), stats -> {
             if (stats != null && stats.isSuccess()) {
                 updateDashboardStats(stats);
             }
         });
-        
+
         // Observe error messages
         adminViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
             }
         });
-        
+
         // Observe admin orders
         adminViewModel.getAdminOrders().observe(getViewLifecycleOwner(), ordersResponse -> {
             if (ordersResponse != null && ordersResponse.isSuccess()) {
                 updateRecentOrders(ordersResponse);
             }
         });
-        
+
         // Observe customer details
         adminViewModel.getCustomerDetails().observe(getViewLifecycleOwner(), customerResponse -> {
             if (customerResponse != null && customerResponse.isSuccess()) {
                 showCustomerDetailsDialog(customerResponse);
             }
         });
-        
+
         // Observe order update result
         adminViewModel.getOrderUpdateResult().observe(getViewLifecycleOwner(), success -> {
             if (success != null && success) {
@@ -187,16 +205,22 @@ public class AdminDashboardFragment extends Fragment {
     }
 
     private void loadDashboardData() {
-        if (adminViewModel != null) {
-            // Load all statistics
-            adminViewModel.loadAllStats();
-            // Load recent orders for dashboard
-            adminViewModel.loadAdminOrders(1, 5, null, null);
+        try {
+            if (adminViewModel != null) {
+                // Load all statistics
+                adminViewModel.loadAllStats();
+                // Load recent orders for dashboard
+                adminViewModel.loadAdminOrders(1, 5, null, null);
+            }
+            
+            // Update welcome message with current time
+            if (tvWelcomeMessage != null) {
+                String timeOfDay = getTimeOfDay();
+                tvWelcomeMessage.setText("Quản lý hệ thống PhoneShop - " + timeOfDay);
+            }
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "Error loading dashboard data: " + e.getMessage(), e);
         }
-        
-        // Update welcome message with current time
-        String timeOfDay = getTimeOfDay();
-        tvWelcomeMessage.setText("Quản lý hệ thống PhoneShop - " + timeOfDay);
     }
     
     private String getTimeOfDay() {
