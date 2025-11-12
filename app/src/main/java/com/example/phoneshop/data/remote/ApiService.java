@@ -11,6 +11,10 @@ import com.example.phoneshop.data.model.OrderResponse;
 import com.example.phoneshop.data.model.Product;
 import com.example.phoneshop.data.model.ProductResponse;
 import com.example.phoneshop.data.model.User;
+import com.example.phoneshop.features.feature_admin.model.AdminLoginResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminResponse;
+import com.example.phoneshop.features.feature_admin.model.AdminStatsResponse;
+import com.example.phoneshop.features.feature_admin.viewmodel.AdminViewModel;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -162,4 +166,69 @@ public interface ApiService {
         // Lấy lịch sử đơn hàng theo userId
         @GET("api/orders/{userId}")
         Call<List<Order>> getOrderHistory(@Path("userId") String userId);
+
+        // ========== ADMIN ENDPOINTS ==========
+
+        // Admin Authentication
+        @POST("admin/login")
+        Call<AdminLoginResponse> loginAdmin(@Body AdminViewModel.AdminLoginRequest request);
+
+        // Admin Dashboard
+        @GET("admin/dashboard")
+        Call<AdminStatsResponse> getAdminDashboardStats();
+
+        // Admin User Management
+        @GET("admin/users")
+        Call<AdminResponse<User>> getAdminUsers(
+                @Query("page") int page,
+                @Query("size") int size,
+                @Query("q") String query);
+        
+        @GET("admin/users/{id}")
+        Call<AdminResponse<User>> getAdminUserDetail(@Path("id") String userId);
+        
+        @DELETE("admin/users/{id}")
+        Call<AdminResponse> deleteAdminUser(@Path("id") String userId);
+        
+        // Admin Order Management
+        @GET("admin/orders")
+        Call<AdminResponse<Order>> getAdminOrders(
+                @Query("page") int page,
+                @Query("size") int size,
+                @Query("status") String status,
+                @Query("q") String query);
+        
+        @GET("admin/orders/{id}")
+        Call<AdminResponse<Order>> getAdminOrderDetail(@Path("id") String orderId);
+        
+        @PUT("admin/orders/{id}/status")
+        Call<AdminResponse> updateAdminOrderStatus(
+                @Path("id") String orderId,
+                @Body AdminViewModel.OrderStatusRequest request);
+        
+        // Admin Product Management
+        @GET("admin/products")
+        Call<AdminResponse<Product>> getAdminProducts(
+                @Query("page") int page,
+                @Query("size") int size,
+                @Query("q") String query,
+                @Query("brand") String brand,
+                @Query("sort") String sort);
+        
+        @GET("admin/products/{id}")
+        Call<AdminResponse<Product>> getAdminProductDetail(@Path("id") String productId);
+        
+        @POST("admin/products")
+        Call<Product> createAdminProduct(@Body Product product);
+        
+        @PUT("admin/products/{id}")
+        Call<Product> updateAdminProduct(@Path("id") String productId, @Body Product product);
+        
+        @DELETE("admin/products/{id}")
+        Call<Void> deleteAdminProduct(@Path("id") String productId);
+        
+        @PUT("admin/products/{id}/visibility")
+        Call<AdminResponse> updateAdminProductVisibility(
+                @Path("id") String productId,
+                @Query("visible") boolean visible);
 }

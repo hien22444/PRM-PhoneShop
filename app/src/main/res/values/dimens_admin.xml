@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation Drawer -->
+    <dimen name="nav_header_height">176dp</dimen>
+    <dimen name="nav_header_vertical_spacing">8dp</dimen>
+    
+    <!-- Activity Margins -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    
+    <!-- Admin Specific -->
+    <dimen name="admin_card_margin">8dp</dimen>
+    <dimen name="admin_card_padding">16dp</dimen>
+    <dimen name="admin_card_corner_radius">12dp</dimen>
+</resources>

@@ -50,7 +50,19 @@ public class AuthViewModel extends ViewModel {
     public void login(String username, String password) {
         isLoading.setValue(true);
 
-        // Tạo request cho API
+        // Kiểm tra admin credentials
+        if ("admin".equals(username) && "admin".equals(password)) {
+            // Đăng nhập admin thành công
+            AuthResult result = new AuthResult(true, "admin", "admin", null);
+            result.setFullName("System Administrator");
+            result.setEmail("admin@phoneshop.com");
+            result.setIsAdmin(true); // Flag để identify admin
+            loginResult.setValue(result);
+            isLoading.setValue(false);
+            return;
+        }
+
+        // Tạo request cho API (user login)
         AuthRequest request = AuthRequest.forLogin(username, password);
         
         // Gọi API đăng nhập
@@ -156,6 +168,7 @@ public class AuthViewModel extends ViewModel {
         private final String username;
         private String fullName;
         private String email;
+        private boolean isAdmin = false;
         private final String errorMessage;
 
         public AuthResult(boolean success, String userId, String username, String errorMessage) {
@@ -191,6 +204,14 @@ public class AuthViewModel extends ViewModel {
 
         public void setEmail(String email) {
             this.email = email;
+        }
+
+        public boolean isAdmin() {
+            return isAdmin;
+        }
+
+        public void setIsAdmin(boolean isAdmin) {
+            this.isAdmin = isAdmin;
         }
 
         public String getErrorMessage() {

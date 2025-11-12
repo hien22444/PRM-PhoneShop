@@ -483,6 +483,141 @@ app.get("/api/products/:id", (req, res) => {
 });
 
 /* =============== 🧑‍💻 ADMIN API ==================== */
+
+// Admin Authentication
+app.post("/admin/auth/login", (req, res) => {
+  const { username, password } = req.body;
+  
+  console.log(`🔐 ADMIN LOGIN ATTEMPT: ${username}`);
+  
+  // Simple admin credentials check
+  if (username === "admin" && password === "admin") {
+    const adminSession = {
+      id: "admin_001",
+      username: "admin",
+      role: "administrator",
+      fullName: "System Administrator",
+      loginTime: new Date().toISOString(),
+      permissions: ["users", "orders", "products", "statistics"]
+    };
+    
+    console.log(`✅ ADMIN LOGIN SUCCESS: ${username}`);
+    
+    res.json({
+      success: true,
+      message: "Đăng nhập admin thành công",
+      admin: adminSession,
+      token: "admin_token_" + Date.now() // Simple token for demo
+    });
+  } else {
+    console.log(`❌ ADMIN LOGIN FAILED: ${username}`);
+    res.status(401).json({
+      success: false,
+      message: "Tên đăng nhập hoặc mật khẩu admin không đúng"
+    });
+  }
+});
+
+// Admin Dashboard Statistics
+app.get("/admin/dashboard/stats", (req, res) => {
+  console.log(`📊 ADMIN STATS: Generating dashboard statistics`);
+  
+  // Calculate statistics
+  const totalUsers = db.users.length;
+  const totalProducts = db.products.length;
+  const totalOrders = db.orders.length;
+  const totalRevenue = db.orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+  
+  // Order status breakdown
+  const ordersByStatus = {};
+  db.orders.forEach(order => {
+    ordersByStatus[order.status] = (ordersByStatus[order.status] || 0) + 1;
+  });
+  
+  // Recent orders (last 10)
+  const recentOrders = db.orders
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 10)
+    .map(order => ({
+      id: order.id,
+      customerName: order.customerInfo?.fullName || 'N/A',
+      totalAmount: order.totalAmount,
+      status: order.status,
+      createdAt: order.createdAt,
+      itemCount: order.items?.length || 0
+    }));
+  
+  // Monthly revenue (last 6 months)
+  const monthlyRevenue = {};
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthKey = date.toISOString().substring(0, 7); // YYYY-MM
+    monthlyRevenue[monthKey] = 0;
+  }
+  
+  db.orders.forEach(order => {
+    const orderMonth = order.createdAt.substring(0, 7);
+    if (monthlyRevenue.hasOwnProperty(orderMonth)) {
+      monthlyRevenue[orderMonth] += order.totalAmount || 0;
+    }
+  });
+  
+  // Top selling products
+  const productSales = {};
+  db.orders.forEach(order => {
+    if (order.items) {
+      order.items.forEach(item => {
+        if (!productSales[item.productId]) {
+          productSales[item.productId] = {
+            productId: item.productId,
+            name: item.name,
+            totalQuantity: 0,
+            totalRevenue: 0
+          };
+        }
+        productSales[item.productId].totalQuantity += item.quantity || 0;
+        productSales[item.productId].totalRevenue += (item.price || 0) * (item.quantity || 0);
+      });
+    }
+  });
+  
+  const topProducts = Object.values(productSales)
+    .sort((a, b) => b.totalQuantity - a.totalQuantity)
+    .slice(0, 5);
+  
+  const stats = {
+    overview: {
+      totalUsers,
+      totalProducts,
+      totalOrders,
+      totalRevenue,
+      averageOrderValue: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
+    },
+    ordersByStatus,
+    recentOrders,
+    monthlyRevenue: Object.entries(monthlyRevenue).map(([month, revenue]) => ({
+      month,
+      revenue
+    })),
+    topProducts,
+    systemInfo: {
+      serverUptime: process.uptime(),
+      dataFile: DATA_FILE,
+      lastBackup: new Date().toISOString()
+    }
+  };
+  
+  console.log(`📊 ADMIN STATS: Generated stats - Users: ${totalUsers}, Orders: ${totalOrders}, Revenue: ${totalRevenue.toLocaleString()}`);
+  
+  res.json({
+    success: true,
+    data: stats,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Admin Products Management
 app.get("/admin/products", (req, res) => {
   let { page = 0, size = 20, q = "", brand, sort } = req.query;
   page = parseInt(page, 10);
@@ -574,11 +709,13 @@ app.delete("/admin/products/:id", (req, res) => {
   res.status(204).end();
 });
 
-// Admin: Lấy danh sách users
+// Admin Users Management
 app.get("/admin/users", (req, res) => {
   let { page = 0, size = 20, q = "" } = req.query;
   page = parseInt(page, 10);
   size = parseInt(size, 10);
+
+  console.log(`👥 ADMIN USERS: Fetching users - page: ${page}, size: ${size}, query: "${q}"`);
 
   let users = db.users.map(({ password, ...user }) => user); // Loại bỏ password
   
@@ -596,7 +733,217 @@ app.get("/admin/users", (req, res) => {
   const start = page * size;
   const content = users.slice(start, start + size);
 
+  console.log(`👥 ADMIN USERS: Found ${totalElements} users, returning ${content.length} users`);
+
   res.json({ content, page, size, totalPages, totalElements });
+});
+
+// Admin: Get user detail
+app.get("/admin/users/:id", (req, res) => {
+  const userId = req.params.id;
+  console.log(`👤 ADMIN USER DETAIL: Fetching user ${userId}`);
+  
+  const user = db.users.find(u => u.id === userId);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy người dùng"
+    });
+  }
+
+  // Get user's orders
+  const userOrders = db.orders.filter(order => order.userId === userId);
+  const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+  const { password, ...userInfo } = user;
+  const userDetail = {
+    ...userInfo,
+    statistics: {
+      totalOrders: userOrders.length,
+      totalSpent: totalSpent,
+      lastOrderDate: userOrders.length > 0 ? 
+        userOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0].createdAt : null
+    },
+    recentOrders: userOrders
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5)
+      .map(order => ({
+        id: order.id,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        createdAt: order.createdAt,
+        itemCount: order.items?.length || 0
+      }))
+  };
+
+  console.log(`👤 ADMIN USER DETAIL: User ${userId} - Orders: ${userOrders.length}, Spent: ${totalSpent.toLocaleString()}`);
+
+  res.json({
+    success: true,
+    user: userDetail
+  });
+});
+
+// Admin: Delete user
+app.delete("/admin/users/:id", (req, res) => {
+  const userId = req.params.id;
+  console.log(`🗑️ ADMIN DELETE USER: Attempting to delete user ${userId}`);
+  
+  const userIndex = db.users.findIndex(u => u.id === userId);
+  if (userIndex === -1) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy người dùng"
+    });
+  }
+
+  // Soft delete - set isActive to false instead of removing
+  db.users[userIndex].isActive = false;
+  db.users[userIndex].deletedAt = new Date().toISOString();
+  
+  saveData(db);
+  
+  console.log(`🗑️ ADMIN DELETE USER: User ${userId} marked as inactive`);
+  
+  res.json({
+    success: true,
+    message: "Đã xóa người dùng thành công"
+  });
+});
+
+// Admin Orders Management
+app.get("/admin/orders", (req, res) => {
+  let { page = 0, size = 20, status, q = "" } = req.query;
+  page = parseInt(page, 10);
+  size = parseInt(size, 10);
+
+  console.log(`📦 ADMIN ORDERS: Fetching orders - page: ${page}, size: ${size}, status: "${status}", query: "${q}"`);
+
+  let orders = [...db.orders];
+  
+  // Filter by status
+  if (status && status !== 'all') {
+    orders = orders.filter(order => order.status === status);
+  }
+  
+  // Search filter
+  if (q) {
+    const searchQuery = q.toLowerCase();
+    orders = orders.filter(order => 
+      order.id.toLowerCase().includes(searchQuery) ||
+      (order.customerInfo?.fullName || '').toLowerCase().includes(searchQuery) ||
+      (order.customerInfo?.phone || '').toLowerCase().includes(searchQuery)
+    );
+  }
+
+  // Sort by creation date (newest first)
+  orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const totalElements = orders.length;
+  const totalPages = Math.ceil(totalElements / size);
+  const start = page * size;
+  const content = orders.slice(start, start + size).map(order => ({
+    id: order.id,
+    customerInfo: order.customerInfo,
+    totalAmount: order.totalAmount,
+    status: order.status,
+    paymentMethod: order.paymentMethod,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    itemCount: order.items?.length || 0,
+    formattedDate: new Date(order.createdAt).toLocaleDateString('vi-VN'),
+    formattedAmount: order.totalAmount.toLocaleString('vi-VN') + ' ₫',
+    statusColor: getStatusColor(order.status)
+  }));
+
+  console.log(`📦 ADMIN ORDERS: Found ${totalElements} orders, returning ${content.length} orders`);
+
+  res.json({ content, page, size, totalPages, totalElements });
+});
+
+// Admin: Get order detail
+app.get("/admin/orders/:id", (req, res) => {
+  const orderId = req.params.id;
+  console.log(`📋 ADMIN ORDER DETAIL: Fetching order ${orderId}`);
+  
+  const order = db.orders.find(o => o.id === orderId);
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy đơn hàng"
+    });
+  }
+
+  // Enhanced order detail with formatted data
+  const orderDetail = {
+    ...order,
+    formattedDate: new Date(order.createdAt).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    formattedAmount: order.totalAmount.toLocaleString('vi-VN') + ' ₫',
+    statusColor: getStatusColor(order.status),
+    itemCount: order.items?.length || 0,
+    totalQuantity: order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0,
+    items: order.items?.map(item => ({
+      ...item,
+      formattedPrice: (item.price || 0).toLocaleString('vi-VN') + ' ₫',
+      subtotal: (item.price || 0) * (item.quantity || 0),
+      formattedSubtotal: ((item.price || 0) * (item.quantity || 0)).toLocaleString('vi-VN') + ' ₫'
+    })) || []
+  };
+
+  console.log(`📋 ADMIN ORDER DETAIL: Order ${orderId} - Status: ${order.status}, Amount: ${order.totalAmount.toLocaleString()}`);
+
+  res.json({
+    success: true,
+    order: orderDetail
+  });
+});
+
+// Admin: Update order status
+app.patch("/admin/orders/:id/status", (req, res) => {
+  const orderId = req.params.id;
+  const { status } = req.body;
+  
+  console.log(`📝 ADMIN UPDATE ORDER: Updating order ${orderId} status to "${status}"`);
+  
+  if (!status) {
+    return res.status(400).json({
+      success: false,
+      message: "Thiếu trạng thái đơn hàng"
+    });
+  }
+  
+  const orderIndex = db.orders.findIndex(o => o.id === orderId);
+  if (orderIndex === -1) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy đơn hàng"
+    });
+  }
+  
+  const oldStatus = db.orders[orderIndex].status;
+  db.orders[orderIndex].status = status;
+  db.orders[orderIndex].updatedAt = new Date().toISOString();
+  
+  saveData(db);
+  
+  console.log(`📝 ADMIN UPDATE ORDER: Order ${orderId} status changed from "${oldStatus}" to "${status}"`);
+  
+  res.json({
+    success: true,
+    message: "Cập nhật trạng thái đơn hàng thành công",
+    order: {
+      id: orderId,
+      oldStatus,
+      newStatus: status,
+      updatedAt: db.orders[orderIndex].updatedAt
+    }
+  });
 });
 
 /* =============== 🛒 CART API ==================== */
@@ -1354,6 +1701,219 @@ app.post("/api/backup", (req, res) => {
     res.status(500).json({
       success: false,
       message: "Backup failed",
+      error: error.message
+    });
+  }
+});
+
+/* =============== 📊 ADMIN DASHBOARD APIs ==================== */
+
+// 📊 Admin Dashboard Stats
+app.get("/api/admin/dashboard", (req, res) => {
+  try {
+    const data = loadData();
+    
+    // Calculate statistics
+    const totalUsers = data.users.length;
+    const totalOrders = data.orders.length;
+    const totalProducts = data.products.length;
+    
+    // Calculate total revenue
+    const totalRevenue = data.orders.reduce((sum, order) => {
+      return sum + (order.totalPrice || 0);
+    }, 0);
+    
+    // Order status breakdown
+    const ordersByStatus = {
+      processing: data.orders.filter(order => order.status === "Đang xử lý").length,
+      confirmed: data.orders.filter(order => order.status === "Đã xác nhận").length,
+      shipping: data.orders.filter(order => order.status === "Đang giao").length,
+      completed: data.orders.filter(order => order.status === "Đã thanh toán" || order.status === "Hoàn thành").length,
+      cancelled: data.orders.filter(order => order.status === "Đã hủy").length
+    };
+    
+    // Recent orders (last 5)
+    const recentOrders = data.orders
+      .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+      .slice(0, 5)
+      .map(order => ({
+        id: order.id,
+        customerName: order.customerName,
+        totalPrice: order.totalPrice,
+        status: order.status,
+        orderDate: order.orderDate,
+        itemCount: order.items ? order.items.length : 0
+      }));
+    
+    // Top products by sales (mock data for now)
+    const topProducts = data.products.slice(0, 5).map((product, index) => ({
+      id: product.id,
+      name: product.name,
+      brand: product.brand,
+      salesCount: Math.floor(Math.random() * 100) + 10,
+      revenue: Math.floor(Math.random() * 50000000) + 10000000
+    }));
+    
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          totalUsers,
+          totalOrders,
+          totalProducts,
+          totalRevenue
+        },
+        ordersByStatus,
+        recentOrders,
+        topProducts,
+        systemInfo: {
+          serverUptime: process.uptime(),
+          dataFile: "data.json",
+          lastBackup: new Date().toISOString()
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get dashboard stats",
+      error: error.message
+    });
+  }
+});
+
+// 👥 Admin Users API
+app.get("/api/admin/users", (req, res) => {
+  try {
+    const data = loadData();
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
+    const search = req.query.search || "";
+    
+    let users = data.users;
+    
+    // Search filter
+    if (search) {
+      users = users.filter(user => 
+        user.username.toLowerCase().includes(search.toLowerCase()) ||
+        user.email.toLowerCase().includes(search.toLowerCase()) ||
+        (user.fullName && user.fullName.toLowerCase().includes(search.toLowerCase()))
+      );
+    }
+    
+    // Pagination
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + size;
+    const paginatedUsers = users.slice(startIndex, endIndex);
+    
+    res.json({
+      success: true,
+      content: paginatedUsers,
+      page: page,
+      size: size,
+      totalPages: Math.ceil(users.length / size),
+      totalElements: users.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get users",
+      error: error.message
+    });
+  }
+});
+
+// 📦 Admin Orders API
+app.get("/api/admin/orders", (req, res) => {
+  try {
+    const data = loadData();
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
+    const status = req.query.status || "";
+    const search = req.query.search || "";
+    
+    let orders = data.orders;
+    
+    // Status filter
+    if (status && status !== "all") {
+      orders = orders.filter(order => order.status === status);
+    }
+    
+    // Search filter
+    if (search) {
+      orders = orders.filter(order => 
+        order.id.toLowerCase().includes(search.toLowerCase()) ||
+        order.customerName.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    // Sort by date (newest first)
+    orders = orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+    
+    // Pagination
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + size;
+    const paginatedOrders = orders.slice(startIndex, endIndex);
+    
+    res.json({
+      success: true,
+      content: paginatedOrders,
+      page: page,
+      size: size,
+      totalPages: Math.ceil(orders.length / size),
+      totalElements: orders.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get orders",
+      error: error.message
+    });
+  }
+});
+
+// 🛍️ Admin Products API
+app.get("/api/admin/products", (req, res) => {
+  try {
+    const data = loadData();
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
+    const brand = req.query.brand || "";
+    const search = req.query.search || "";
+    
+    let products = data.products;
+    
+    // Brand filter
+    if (brand && brand !== "all") {
+      products = products.filter(product => product.brand === brand);
+    }
+    
+    // Search filter
+    if (search) {
+      products = products.filter(product => 
+        product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.brand.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    // Pagination
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + size;
+    const paginatedProducts = products.slice(startIndex, endIndex);
+    
+    res.json({
+      success: true,
+      content: paginatedProducts,
+      page: page,
+      size: size,
+      totalPages: Math.ceil(products.length / size),
+      totalElements: products.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get products",
       error: error.message
     });
   }

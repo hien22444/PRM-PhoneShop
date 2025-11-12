@@ -40,6 +40,12 @@
                 <data android:scheme="phoneshop" />
             </intent-filter>
         </activity>
+
+        <!-- Admin Activity -->
+        <activity
+            android:name=".features.feature_admin.AdminActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PhoneShop" />
     </application>
 
 </manifest>

@@ -1,6 +1,7 @@
 package com.example.phoneshop.feature_auth;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -101,7 +102,8 @@ public class LoginFragment extends Fragment {
         if (password.isEmpty()) {
             tilPassword.setError("Vui lòng nhập mật khẩu");
             isValid = false;
-        } else if (password.length() < 6) {
+        } else if (password.length() < 6 && !("admin".equals(username) && "admin".equals(password))) {
+            // Allow admin credentials even if password is less than 6 characters
             tilPassword.setError("Mật khẩu phải có ít nhất 6 ký tự");
             isValid = false;
         } else tilPassword.setError(null);
@@ -113,9 +115,16 @@ public class LoginFragment extends Fragment {
         viewModel.getLoginResult().observe(getViewLifecycleOwner(), result -> {
             if (result != null) {
                 if (result.isSuccess()) {
-                    saveUserInfo(result.getUserId(), result.getUsername(), result.getFullName(), result.getEmail());
-                    checkCartItems();
-                    navController.navigate(R.id.action_loginFragment_to_homeFragment);
+                    if (result.isAdmin()) {
+                        // Admin login - navigate to AdminActivity
+                        saveAdminInfo(result.getUserId(), result.getUsername(), result.getFullName(), result.getEmail());
+                        navigateToAdminPanel();
+                    } else {
+                        // Regular user login
+                        saveUserInfo(result.getUserId(), result.getUsername(), result.getFullName(), result.getEmail());
+                        checkCartItems();
+                        navController.navigate(R.id.action_loginFragment_to_homeFragment);
+                    }
                 } else {
                     Toast.makeText(getContext(), result.getErrorMessage(), Toast.LENGTH_SHORT).show();
                 }
@@ -179,6 +188,28 @@ public class LoginFragment extends Fragment {
                 Log.w(TAG, "Google sign in failed", e);
                 Toast.makeText(getContext(), "Đăng nhập Google thất bại", Toast.LENGTH_SHORT).show();
             }
+        }
+    }
+
+    private void saveAdminInfo(String userId, String username, String fullName, String email) {
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("admin_prefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("admin_id", userId);
+        editor.putString("admin_username", username);
+        editor.putString("admin_fullname", fullName);
+        editor.putString("admin_email", email);
+        editor.putBoolean("admin_logged_in", true);
+        editor.apply();
+    }
+
+    private void navigateToAdminPanel() {
+        try {
+            Intent intent = new Intent(getActivity(), com.example.phoneshop.features.feature_admin.AdminActivity.class);
+            startActivity(intent);
+            requireActivity().finish(); // Close current activity
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Lỗi mở Admin Panel: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            // Fallback: stay on current screen
         }
     }
 }
