@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/adminDashboardFragment"> <fragment
+    android:id="@+id/adminDashboardFragment"
+    android:name="com.example.phoneshop.features.feature_admin_ops.AdminDashboardFragment"
+    android:label="Bảng Điều Khiển Admin"
+    tools:layout="@layout/fragment_admin_dashboard" />
+
+    <fragment
+        android:id="@+id/adminOrderListFragment"
+        android:name="com.example.phoneshop.features.feature_admin_ops.orders.AdminOrderListFragment"
+        android:label="Danh sách Đơn hàng" />
+
+    <fragment
+        android:id="@+id/adminUserListFragment"
+        android:name="com.example.phoneshop.features.feature_admin_ops.users.AdminUserListFragment"
+        android:label="Danh sách Người dùng" />
+
+    <fragment
+        android:id="@+id/adminProductListFragment"
+        android:name="com.example.phoneshop.features.feature_admin_ops.products.AdminProductListFragment"
+        android:label="Danh sách Sản phẩm" />
+
+    <fragment
+        android:id="@+id/adminOrderDetailFragment"
+        android:name="com.example.phoneshop.features.feature_admin_ops.orders.AdminOrderDetailFragment"
+        android:label="Chi tiết Đơn hàng" >
+
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+    </fragment>
+
+</navigation>
